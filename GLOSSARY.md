@@ -82,6 +82,12 @@ The pedals under the angler's feet that push the kayak forward. A rudder at the 
 
 Not: paddle, motor, engine
 
+### Power wind
+
+An electric motor on the reel that brings the line in at {reel.power_wind}, much faster than winding by hand. It runs only while no fish has the lure.
+
+Not: turbo, boost
+
 ### Reel
 
 The spool on the rod that winds line in and lets it out. Winding the reel shortens the line by {reel.wind_per_turn} a turn.

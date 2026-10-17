@@ -14,7 +14,8 @@
     "ArrowUp": "pedal",
     "ArrowDown": "back_pedal",
     "ArrowLeft": "drift_left",
-    "ArrowRight": "drift_right"
+    "ArrowRight": "drift_right",
+    "KeyE": "power_wind"
   },
   "mouse": { "2": "scope" },
   "acts": {

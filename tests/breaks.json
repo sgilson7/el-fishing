@@ -96,5 +96,12 @@
     "find": "                dir.scale(fx::mul(strength, self.stamina.max(ONE / 20)))",
     "replace": "                dir.scale(strength)",
     "test": "a_hooked_fish_tires_and_pulls_less"
+  },
+  {
+    "name": "the power wind stops when a fish has the lure",
+    "file": "crates/core/src/world.rs",
+    "find": "            power: on(POWER_WIND) && self.holder.is_none(),",
+    "replace": "            power: on(POWER_WIND),",
+    "test": "the_power_wind_brings_a_lure_in_fast_and_not_a_fish"
   }
 ]

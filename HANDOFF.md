@@ -42,6 +42,8 @@ Round 2 closed R1.1, R1.2, R1.6, R1.8, R1.14, R1.17, R1.18 and R1.21: the person
 - R2.15 the round-2 strings in `data/strings.json`.
 - R2.16 the website's two diverged branches, and Mage Tower Battle's listing, which is on `origin` but not live.
 - R2.17 the machine address in the public commit history.
+- R3.3 mahi-mahi chase the power wind; red snapper do not.
+- R3.4 the round-3 strings and the Power wind glossary entry.
 
 ## Mistakes so far
 

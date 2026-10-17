@@ -15,6 +15,7 @@
   },
   "water": {
     "uTau": [6283],
+    "uLod": [2000, 5000],
     "uHalf": [500],
     "uDeep": ["#0b3550"],
     "uShallow": ["#1f7088"],
@@ -55,9 +56,9 @@
     "focal_x1000": 2145,
     "follow_pct": 12,
     "scope_eye_cm": [6, 112, 21],
-    "scope_min_zoom": 2,
-    "scope_max_zoom": 8,
-    "scope_start_zoom": 6
+    "scope_min_zoom": 4,
+    "scope_max_zoom": 16,
+    "scope_start_zoom": 10
   },
   "colours": {
     "hull": "#3b8f8c",

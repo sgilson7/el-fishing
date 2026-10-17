@@ -49,6 +49,8 @@ pub struct LineSpec {
     /// The line's internal damping: XPBD's γ, in percent (R2.6).
     pub damping_pct: i32,
     pub wind_per_turn_cm: i32,
+    /// How fast the electric motor brings line in.
+    pub power_wind_cm_s: i32,
     pub turns_per_s_x10: i32,
     /// N per metre of tip bend, and the most the tip bends.
     pub rod_stiffness_n_m: i32,
@@ -66,6 +68,9 @@ pub struct LineInput {
     pub finger: bool,
     /// Space: close the bail and wind.
     pub wind: bool,
+    /// E: close the bail and bring the line in on the reel's electric motor.
+    /// The world allows it only while no fish has the lure (T7).
+    pub power: bool,
 }
 
 /// What hangs on the end of the line: the lure, or a fish holding it.
@@ -200,7 +205,7 @@ impl Line {
             self.bail_open = true;
         }
         self.finger = input.finger;
-        if input.wind {
+        if input.wind || input.power {
             self.bail_open = false;
         }
         let pinned = !self.bail_open || self.finger;
@@ -216,6 +221,7 @@ impl Line {
         let (pm, pv, pa) = self.point();
         let floor_mass = s.point_floor_mg * ONE / 1_000_000;
         let wind_per_s = fx::mul(s.wind_per_turn_cm * ONE / 100, s.turns_per_s_x10 * ONE / 10);
+        let power_per_s = s.power_wind_cm_s * ONE / 100;
         let mut tension_sum: i64 = 0;
         let per_h2 = (TICKS_PER_SECOND * SUBSTEPS as i64).pow(2);
         self.slipping = false;
@@ -298,7 +304,9 @@ impl Line {
                 self.out += give / SUBSTEPS;
                 self.slipping = true;
             }
-            if input.wind && !self.bail_open && !self.slipping {
+            if input.power && !self.bail_open {
+                self.out -= fx::mul(power_per_s, h);
+            } else if input.wind && !self.bail_open && !self.slipping {
                 self.out -= fx::mul(wind_per_s, h);
             }
             self.out = self.out.clamp(s.shortest_out_cm * ONE / 100, longest);
@@ -465,6 +473,7 @@ pub mod tests {
             stretch_at_break_pct: 20,
             damping_pct: 20,
             wind_per_turn_cm: 60,
+            power_wind_cm_s: 600,
             turns_per_s_x10: 20,
             rod_stiffness_n_m: 25,
             rod_bend_max_cm: 60,
@@ -542,6 +551,7 @@ pub mod tests {
         let input = LineInput {
             finger: true,
             wind: false,
+            power: false,
         };
         for t in 0..240 {
             let fish = EndLoad {
@@ -567,6 +577,7 @@ pub mod tests {
         let input = LineInput {
             finger: true,
             wind: false,
+            power: false,
         };
         // a heavy end pulled sideways by a steady force: the tension settles at that force
         let held = |newtons: i32| {
@@ -642,7 +653,16 @@ pub mod tests {
             let last = l.vel.len() - 1;
             l.vel[last] = v3(0, 12 * 7071 * (ONE / 10_000), 12 * 7071 * (ONE / 10_000));
             for _ in 0..240 {
-                l.tick(&sea, high(), LineInput { finger, wind: false }, lure);
+                l.tick(
+                    &sea,
+                    high(),
+                    LineInput {
+                        finger,
+                        wind: false,
+                        power: false,
+                    },
+                    lure,
+                );
             }
             (l.end().z, l.out)
         };
@@ -670,6 +690,7 @@ pub mod tests {
                 LineInput {
                     finger: false,
                     wind: true,
+                    power: false,
                 },
                 lure,
             );

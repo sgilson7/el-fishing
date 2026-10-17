@@ -33,6 +33,12 @@ pub struct Clock {
 impl Clock {
     /// The input bits for each tick to run this frame, in order. Often
     /// empty, often one, more after a slow frame.
+    /// How far the display is toward the next tick, in sixty-five-thousand-
+    /// five-hundred-and-thirty-sixths. Drawing only: a rule never reads it.
+    pub fn between(&self) -> i32 {
+        ((self.owed.clamp(0, TICK_US) << 16) / TICK_US) as i32
+    }
+
     pub fn frame(&mut self, now_us: i64, bits: u32) -> Vec<u32> {
         let elapsed = match self.last {
             Some(prev) => (now_us - prev).clamp(0, TICK_US * MAX_TICKS_PER_FRAME as i64),

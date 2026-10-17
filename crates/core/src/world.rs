@@ -32,9 +32,10 @@ pub mod bits {
     pub const DRIFT_LEFT: u32 = 1 << 12;
     pub const DRIFT_RIGHT: u32 = 1 << 13;
     pub const SCOPE: u32 = 1 << 14;
+    pub const POWER_WIND: u32 = 1 << 15;
     /// The eight keys that move the arms.
     pub const ARMS: u32 = 0xff;
-    pub const NAMES: [(&str, u32); 15] = [
+    pub const NAMES: [(&str, u32); 16] = [
         ("left_shoulder_up", LEFT_SHOULDER_UP),
         ("left_shoulder_down", LEFT_SHOULDER_DOWN),
         ("left_elbow_bend", LEFT_ELBOW_BEND),
@@ -50,6 +51,7 @@ pub mod bits {
         ("drift_left", DRIFT_LEFT),
         ("drift_right", DRIFT_RIGHT),
         ("scope", SCOPE),
+        ("power_wind", POWER_WIND),
     ];
 }
 
@@ -218,6 +220,8 @@ impl World {
         let line_input = LineInput {
             finger: on(FINGER),
             wind: on(WIND),
+            // the motor is for bringing a lure back, not for a fish (T7)
+            power: on(POWER_WIND) && self.holder.is_none(),
         };
         self.sea.tick();
         self.arms.tick(arm_input);
@@ -450,7 +454,16 @@ pub mod tests {
     #[test]
     fn only_the_arm_keys_move_the_rod() {
         use bits::*;
-        for key in [FINGER, WIND, PEDAL, BACK_PEDAL, DRIFT_LEFT, DRIFT_RIGHT, SCOPE] {
+        for key in [
+            FINGER,
+            WIND,
+            PEDAL,
+            BACK_PEDAL,
+            DRIFT_LEFT,
+            DRIFT_RIGHT,
+            SCOPE,
+            POWER_WIND,
+        ] {
             let mut w = world(1);
             let before = (w.arms.angle, w.arms.rod());
             for _ in 0..60 {
@@ -509,6 +522,25 @@ pub mod tests {
         }
         assert!(w.fish.iter().all(|f| f.mood != Mood::Hooked));
         assert_eq!(w.holder, None);
+    }
+
+    #[test]
+    fn the_power_wind_brings_a_lure_in_fast_and_not_a_fish() {
+        // 6 m/s for half a second: 3 m of line, from 10 m out
+        let mut w = held(Mood::Cruise);
+        w.line.out = 10 * ONE;
+        for _ in 0..30 {
+            w.step(bits::POWER_WIND);
+        }
+        let wound = 10 * ONE - w.line.out;
+        assert!((wound - 3 * ONE).abs() < ONE / 10, "wound {wound}");
+        // with a fish holding the lure the motor does nothing
+        let mut w = held(Mood::Hold);
+        w.line.out = 10 * ONE;
+        for _ in 0..30 {
+            w.step(bits::POWER_WIND);
+        }
+        assert!(w.line.out >= 10 * ONE - ONE / 100, "out {}", w.line.out);
     }
 
     #[test]

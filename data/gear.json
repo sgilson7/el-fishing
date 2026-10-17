@@ -60,8 +60,9 @@
     "damping_pct": 20,
     "iterations": 12,
     "along_drag_pct": 2,
-    "wind_per_turn_cm": 60,
-    "turns_per_s_x10": 20,
+    "wind_per_turn_cm": 80,
+    "power_wind_cm_s": 600,
+    "turns_per_s_x10": 25,
     "rod_stiffness_n_m": 25,
     "rod_bend_max_cm": 60
   },

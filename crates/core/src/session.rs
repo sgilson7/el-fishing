@@ -80,6 +80,16 @@ pub struct Session {
     meshes: Vec<Vec<i32>>,
 }
 
+/// `n` hundredths or thousandths (`per`) with one decimal place, or none
+/// when the value is whole: 8 m, 0.6 m, 1 m/s.
+fn plain(n: i32, per: i32) -> String {
+    if n % per == 0 {
+        (n / per).to_string()
+    } else {
+        decimal(n * (ONE / per) + n * (ONE % per) / per, 1)
+    }
+}
+
 fn decimal(v: Fx, places: u32) -> String {
     let scale = 10i64.pow(places);
     let n = (v as i64 * scale + if v >= 0 { ONE as i64 / 2 } else { -(ONE as i64) / 2 }) / ONE as i64;
@@ -181,6 +191,26 @@ impl Session {
         self.build_frame();
     }
 
+    /// The fish whose mouth is nearest the lure, within ten metres of it.
+    fn nearest_fish(&self) -> Option<usize> {
+        let lure = self.world.line.end();
+        self.world
+            .fish
+            .iter()
+            .enumerate()
+            .filter(|(_, f)| f.mouth_at().sub(lure).len() < 10 * ONE)
+            .min_by_key(|(_, f)| f.mouth_at().sub(lure).len())
+            .map(|(i, _)| i)
+    }
+
+    /// How deep the lure is under the surface, and how fast it moves through the water.
+    fn lure_depth_and_speed(&self) -> (Fx, Fx) {
+        let w = &self.world;
+        let e = w.line.end();
+        let depth = (w.sea.height(e.x, e.z) - e.y).max(0);
+        (depth, w.lure_vel.sub(w.sea.water_velocity()).len())
+    }
+
     fn fish_name(&self, i: usize) -> String {
         let s = self.world.fish[i].species;
         self.strings.get(&self.world.place.fish[s].name)
@@ -250,13 +280,17 @@ impl Session {
         let h = &self.world.hull;
         let cm = |v: i32| v * ONE / 100;
         if self.scoping() {
-            // the angler's right eye, looking down the line at the lure or the fish on it
+            // the angler's right eye, looking at the mouth of the fish nearest
+            // the lure, or at the lure when no fish is near (T6)
             let eye = h.to_world(v3(
                 cm(c.scope_eye_cm[0]),
                 cm(c.scope_eye_cm[1]),
                 cm(c.scope_eye_cm[2]),
             ));
-            let at = self.world.line.end();
+            let at = self
+                .nearest_fish()
+                .map(|i| self.world.fish[i].mouth_at())
+                .unwrap_or(self.world.line.end());
             self.camera = Camera {
                 eye,
                 at,
@@ -314,8 +348,9 @@ impl Session {
         u.extend_from_slice(&vp);
         u.extend_from_slice(&eye);
         u.extend_from_slice(&[level, self.clarity]);
-        // the grid follows the eye in whole metres
-        u.extend_from_slice(&[cam.eye.x & !(ONE - 1), cam.eye.z & !(ONE - 1)]);
+        // the grid slides with the eye. Snapped to whole metres it jumped back
+        // and forth as the camera swayed on the swell (T2)
+        u.extend_from_slice(&[cam.eye.x, cam.eye.z]);
         let tick = world.tick as i64;
         u.push(((tick % (600 * TICKS_PER_SECOND)) * ONE as i64 / TICKS_PER_SECOND) as i32);
         let hl = &world.hull;
@@ -331,8 +366,12 @@ impl Session {
             _ => [0, 0, 0, 0],
         };
         u.extend_from_slice(&ring);
+        // each phase drawn where it will be between this tick and the next, so
+        // the water moves on every display frame, not only on ticks (T2)
+        let between = self.clock.between() as u64;
         for wv in &world.sea.waves {
-            let turns = (wv.phase >> 16) as i32;
+            let drawn = wv.phase.wrapping_add(((wv.step as u64 * between) >> 16) as u32);
+            let turns = (drawn >> 16) as i32;
             u.extend_from_slice(&[wv.dx, wv.dz, fx::div(ONE, wv.length), turns]);
         }
         for wv in &world.sea.waves {
@@ -366,6 +405,13 @@ impl Session {
                 out.push((p, u));
             }
         }
+        // the grid's radius and its spacing factor: a vertex r from the middle
+        // of a square-law grid of n cells across sits 4√(rR)/n from the next
+        let cells = l.grid_cells.max(1);
+        out.push((
+            Program::Water,
+            ("uGrid".into(), vec![l.grid_radius_m * ONE, 4 * ONE / cells]),
+        ));
         out
     }
 
@@ -415,6 +461,10 @@ impl Session {
             )
             .replace("{scope.max_zoom}", &self.look.camera.scope_max_zoom.to_string())
             .replace(
+                "{reel.power_wind}",
+                &format!("{} m/s", decimal(w.gear.line.power_wind_cm_s * ONE / 100, 0)),
+            )
+            .replace(
                 "{tide.period_minutes}",
                 &w.place.sea.tide_period_minutes.to_string(),
             )
@@ -462,6 +512,13 @@ impl Session {
                 s.fill("value.metres", &[("metres", decimal(w.line.out, 1))])
             ]),
             json!([
+                s.get("row.lure_depth"),
+                s.fill(
+                    "value.metres",
+                    &[("metres", decimal(self.lure_depth_and_speed().0, 1))]
+                )
+            ]),
+            json!([
                 s.get("row.drag"),
                 s.fill("value.newtons", &[("newtons", decimal(w.line.drag(), 1))])
             ]),
@@ -473,19 +530,25 @@ impl Session {
         let w = &self.world;
         let s = &self.strings;
         if let Some(i) = w.holder {
-            if w.fish[i].mood == Mood::Hooked {
-                return s.get("hint.fight");
-            }
+            let f = &w.fish[i];
+            return match f.mood {
+                Mood::Hooked if f.stamina < ONE / 4 => s.fill("hint.land", &[("fish", self.fish_name(i))]),
+                Mood::Hooked => s.get("hint.fight"),
+                _ => s.get("hint.set"),
+            };
         }
         if let Some(f) = w.fish.iter().position(|f| f.mood == Mood::Follow) {
             return s.fill("hint.following", &[("fish", self.fish_name(f))]);
         }
+        let (depth, speed) = self.lure_depth_and_speed();
         if w.line.bail_open {
-            return s.get("hint.running");
+            return s.fill("hint.running", &[("depth", decimal(depth, 1))]);
         }
-        let e = w.line.end();
-        if e.y < w.sea.height(e.x, e.z) {
-            return s.get("hint.work");
+        if depth > 0 {
+            return s.fill(
+                "hint.work",
+                &[("depth", decimal(depth, 1)), ("speed", decimal(speed, 1))],
+            );
         }
         s.get("hint.cast")
     }
@@ -503,6 +566,7 @@ impl Session {
             json!(["↑ ↓", s.get("key.pedal")]),
             json!(["← →", s.get("key.drift")]),
             json!(["Space", s.get("key.wind")]),
+            json!(["E", s.get("key.power")]),
             json!(["RMB", s.get("key.scope")]),
             json!(["Esc", s.get("key.menu")]),
         ]
@@ -552,12 +616,7 @@ impl Session {
         let aspect = (w_px as i64 * ONE as i64 / h_px.max(1) as i64) as Fx;
         let lure = w.line.end();
         // the nearest fish to the lure within ten metres, and its mouth zone on screen
-        let near = w
-            .fish
-            .iter()
-            .enumerate()
-            .filter(|(_, f)| f.mouth_at().sub(lure).len() < 10 * ONE)
-            .min_by_key(|(_, f)| f.mouth_at().sub(lure).len());
+        let near = self.nearest_fish().map(|i| (i, &w.fish[i]));
         let mut out =
             json!({"on": on, "zoom": s.fill("scope.zoom", &[("zoom", self.scope_zoom.to_string())])});
         match near {
@@ -594,17 +653,43 @@ impl Session {
                     "text": s.get("intro"),
                     "actions": [{"name": "screen.show", "value": "fishing", "label": s.get("start"), "primary": true}],
                 }));
-                let how: Vec<String> = [
-                    "how.cast",
-                    "how.sink",
-                    "how.work",
-                    "how.set",
-                    "how.fight",
-                    "how.scope",
-                ]
-                .iter()
-                .map(|k| s.get(k))
-                .collect();
+                // one line a species, from its data: where it swims and the lure speed it likes
+                let w = &self.world;
+                let species: Vec<String> = w
+                    .place
+                    .fish
+                    .iter()
+                    .map(|f| {
+                        s.fill(
+                            "how.species",
+                            &[
+                                ("fish", s.get(&f.name)),
+                                ("from", plain(f.depth_cm[0], 100)),
+                                ("to", plain(f.depth_cm[1], 100)),
+                                ("slow", plain(f.lure_speed_mm_s[0], 1000)),
+                                ("fast", plain(f.lure_speed_mm_s[1], 1000)),
+                            ],
+                        )
+                    })
+                    .collect();
+                let hold = w.place.fish.iter().map(|f| f.hold_ms).min().unwrap_or(0);
+                let fill = |k: &str| {
+                    s.fill(
+                        k,
+                        &[
+                            ("power", decimal(w.gear.line.power_wind_cm_s * ONE / 100, 0)),
+                            ("hold", decimal(hold * ONE / 1000, 0)),
+                            ("zoom", self.look.camera.scope_max_zoom.to_string()),
+                        ],
+                    )
+                };
+                let mut how: Vec<String> = ["how.cast", "how.sink"].iter().map(|k| fill(k)).collect();
+                how.extend(species);
+                how.extend(
+                    ["how.work", "how.follow", "how.set", "how.fight", "how.scope"]
+                        .iter()
+                        .map(|k| fill(k)),
+                );
                 panels.push(json!({
                     "id": "how",
                     "heading": s.get("heading.controls"),
@@ -786,6 +871,14 @@ pub mod tests {
             s.frame_uniforms().len(),
             "the frame's uniforms match their layout"
         );
+    }
+
+    #[test]
+    fn whole_values_show_no_decimal_place() {
+        assert_eq!(plain(800, 100), "8");
+        assert_eq!(plain(60, 100), "0.6");
+        assert_eq!(plain(1000, 1000), "1");
+        assert_eq!(plain(6500, 1000), "6.5");
     }
 
     #[test]

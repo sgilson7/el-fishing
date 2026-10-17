@@ -7,10 +7,11 @@ Play it at `sgilson7.github.io/el-fishing`. This first version has one place, th
 ## How to fish
 
 - Cast: hold F, swing the rod back with I, swing it forward with K, and let go of F as the rod passes upright.
-- Let the lure sink, then press Space to close the bail and wind. Wind in bursts and pause.
+- Watch Lure depth: let the lure sink to the depth your fish swims at (the title screen lists each species' depth and the lure speed it likes), then press Space to close the bail and wind. Wind in bursts and pause; a following fish often bites as the lure stops.
+- Hold E for the electric power wind: it brings the lure back fast while no fish has it, and a mahi-mahi may chase it.
 - When a fish bites, sweep the rod up fast (I, with Q for the other arm): that is the hook set.
 - Keep the line tight. Wind while the fish rests; the drag gives line when it runs.
-- Arrow keys pedal and drift. Hold the right mouse button for the scope; the wheel zooms. Esc opens the settings, where slower arms and steady hands make casting easier.
+- Arrow keys pedal and drift. Hold the right mouse button for the scope: it looks at the mouth of the fish nearest the lure, and the wheel zooms. Esc opens the settings, where slower arms and steady hands make casting easier.
 
 ## How it is built
 

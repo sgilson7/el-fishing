@@ -33,7 +33,8 @@ def hold(page, keys, n):
 def run(page, check, engine):
     check(page.get_attribute("body", "data-screen") == "title", "the core's title screen is shown first")
     check(page.inner_text("#title-card h2") == STRINGS["title"], "the title from data/strings.json is drawn")
-    check(page.locator("#how li").count() == 6, "the six how-to lines are listed")
+    # seven how-to lines and one for each of the two species in data/place.json
+    check(page.locator("#how li").count() == 9, "the how-to lines and one line for each species are listed")
 
     page.click("#title-card .btn.go")
     page.wait_for_selector("body[data-screen='fishing']")
