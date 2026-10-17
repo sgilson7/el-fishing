@@ -448,6 +448,22 @@
       "scope_min_zoom": 4,
       "scope_max_zoom": 16,
       "scope_start_zoom": 10
+    },
+    "craft.troller": {
+      "behind_cm": -900,
+      "above_cm": 480,
+      "aside_cm": 0,
+      "look_ahead_cm": -2600,
+      "focal_x1000": 2145,
+      "follow_pct": 15,
+      "scope_eye_cm": [
+        6,
+        112,
+        21
+      ],
+      "scope_min_zoom": 4,
+      "scope_max_zoom": 16,
+      "scope_start_zoom": 10
     }
   },
   "rain_glow": 350

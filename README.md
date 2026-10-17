@@ -2,7 +2,7 @@
 
 A 3D fishing game for the desktop browser. You sit in a pedal-drive kayak and fish with one arm whose shoulder and elbow each have their own pair of keys, so a cast takes practice, as in QWOP. The line is a chain of simulated points with weight, drag and stretch; it snaps above its breaking tension. A fish bites only when the hook is inside its mouth zone, and a scope over one eye lets you see it happen. The water moves the kayak with real swell, tide and current.
 
-Play it at `sgilson7.github.io/el-fishing`. There are two places, the Open Swell and the Ledge River, a river that loops round so its current never ends, and two craft: the kayak to fish from and a speedboat to drive.
+Play it at `sgilson7.github.io/el-fishing`. There are two places, the Open Swell and the Ledge River, a river that loops round so its current never ends, and two craft to fish from: the kayak, and the Sportfisher for trolling. A speedboat is kept for racing maps to come.
 
 ## How to fish
 
@@ -17,6 +17,10 @@ Play it at `sgilson7.github.io/el-fishing`. There are two places, the Open Swell
 ## The speedboat
 
 Choose it on the title. Up and Down move a throttle lever that stays where you leave it (back past neutral is reverse), Left and Right turn the outboard, which swings back to the middle when you let go, and Space puts the throttle in neutral. It planes as it gathers speed, leans and slides through hard turns, and leaves the water off the swell.
+
+## Trolling
+
+Choose the Sportfisher on the title. Four rods stand in holders, two on outriggers far out to the sides and two flat lines off the stern, each towing a lure on its own simulated line. Up and Down move the throttle lever and Left and Right the outboard; hold a trolling speed the fish like (the title lists them). Keys 1 to 4 take a rod, Q lets its line out and Space winds. When a fish strikes, its rod is put in play: keep moving so the hook sets, then fight it as from the kayak. At the Open Swell the Sportfisher finds wahoo, yellowfin tuna and blue marlin.
 
 ## Weather
 

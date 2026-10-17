@@ -350,6 +350,10 @@ impl Line {
                 let give = fx::div(fx::mul(self.tension - slip_at, self.out), ea);
                 self.out += give / SUBSTEPS;
                 self.slipping = true;
+                // a run that empties the spool parts the line at the knot
+                if self.out >= s.longest_out_m * ONE {
+                    self.snapped = true;
+                }
             }
             if motor && !self.slipping {
                 // a stalled motor winds nothing
@@ -768,6 +772,32 @@ pub mod tests {
         });
         assert!(by_hand > 0, "by hand the drag gives line: {by_hand}");
         assert!(motor < 0, "the motor brings line in: {motor}");
+    }
+
+    #[test]
+    fn a_run_that_empties_the_spool_parts_the_line() {
+        // a 15 N run against the 7.1 N drag takes line until the spool, here
+        // only 2 m, is empty; then the line parts
+        let sea = calm();
+        let mut l = laid_out();
+        l.spec.longest_out_m = 2;
+        let end = EndLoad {
+            mass: 2 * ONE,
+            volume: 2 * ONE,
+            area: ONE / 50,
+            force: v3(0, 0, 15 * ONE),
+        };
+        for t in 0..600 {
+            let e = EndLoad {
+                force: end.force.ratio(t.min(120), 120),
+                ..end
+            };
+            l.tick(&sea, deep(), LineInput::default(), e);
+            if l.snapped {
+                break;
+            }
+        }
+        assert!(l.snapped, "line out {}", l.out);
     }
 
     #[test]

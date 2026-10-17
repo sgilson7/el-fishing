@@ -28,4 +28,5 @@ pub mod sea;
 pub mod session;
 pub mod strings;
 pub mod ticks;
+pub mod troll;
 pub mod world;

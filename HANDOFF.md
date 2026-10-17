@@ -39,6 +39,10 @@ Round 6 (T22 to T26):
 - R6.1 the kayak at about 5 m/s.
 - R6.2 a tap of Space closes the bail; held, it winds.
 - R6.4 Q lets line out.
+- R6.6 the first Sportfisher differs from the journal's design (four rods, no clearing or tangles yet).
+- R6.9 a strike puts the struck rod in play for you.
+- R6.11 the craft is named Sportfisher.
+- R6.12 the trolling strings, glossary entries and species.
 
 Round 5 (T18 to T21):
 
@@ -81,6 +85,7 @@ Round 1: a bibliography field from memory (R1.11); labels projected with a stale
 
 ## What passed
 
+- Round 6 with the first Sportfisher (T22 to T26): `./scripts/check.sh` BUILDER CHECK PASSED; `python3 scripts/break_tests.py` 44 of 44 caught; published on the person's grant (BRIEF.md, Round 6).
 - Round 5 (T18 to T21): `./scripts/check.sh` BUILDER CHECK PASSED (118 tests from `./scripts/count-tests.sh`, 1 ignored; the browser check in all three engines now also picks the storm from the dropdown and reads its sea); `python3 scripts/break_tests.py` 38 of 38 caught. Published on the person's word (BRIEF.md, Round 6); the live browser check failed on one fragile winding step, since rewritten (R6.3).
 - Round 4, at 14b18f5 and again at 803e9a4 (the close-up without the rod): `./scripts/check.sh` BUILDER CHECK PASSED on 17 October 2026 (format, lint, 113 tests from `./scripts/count-tests.sh` with 1 ignored, release build, import audit, art, notebook, and the browser check in Chromium, Firefox and WebKit, which now also drives the battery, the fish log, the Ledge River and the speedboat).
 - `python3 scripts/break_tests.py`: 34 of 34 breaks caught.

@@ -14,6 +14,7 @@ use crate::line::{EndLoad, Line, LineInput, LineSpec};
 use crate::rng::Rng;
 use crate::sea::{Sea, SeaSpec};
 use crate::ticks::TICKS_PER_SECOND;
+use crate::troll::TrollSpec;
 
 /// The key bits the page sends; `data/controls.json` maps keys to their names.
 pub mod bits {
@@ -31,9 +32,15 @@ pub mod bits {
     pub const POWER_WIND: u32 = 1 << 11;
     /// Q: let line out off the reel, the bail closed, before a cast (T23).
     pub const LET_OUT: u32 = 1 << 12;
+    /// 1 to 4: take that rod from its holder on a trolling boat (T26).
+    pub const ROD_1: u32 = 1 << 13;
+    pub const ROD_2: u32 = 1 << 14;
+    pub const ROD_3: u32 = 1 << 15;
+    pub const ROD_4: u32 = 1 << 16;
+    pub const RODS: [u32; 4] = [ROD_1, ROD_2, ROD_3, ROD_4];
     /// The four keys that move the casting arm (T12: one arm casts).
     pub const ARMS: u32 = 0xf;
-    pub const NAMES: [(&str, u32); 13] = [
+    pub const NAMES: [(&str, u32); 17] = [
         ("shoulder_up", SHOULDER_UP),
         ("shoulder_down", SHOULDER_DOWN),
         ("elbow_bend", ELBOW_BEND),
@@ -47,6 +54,10 @@ pub mod bits {
         ("scope", SCOPE),
         ("power_wind", POWER_WIND),
         ("let_out", LET_OUT),
+        ("rod_1", ROD_1),
+        ("rod_2", ROD_2),
+        ("rod_3", ROD_3),
+        ("rod_4", ROD_4),
     ];
 }
 
@@ -74,6 +85,10 @@ pub struct BoatSpec {
     /// Kept for the racing maps to come, and not offered at a fishing place (T25).
     #[serde(default)]
     pub racing: bool,
+    /// Fished by trolling: rods in holders towing lures, and the place's
+    /// trolling fish in place of its casting fish (T26).
+    #[serde(default)]
+    pub trolling: bool,
     pub hull: HullSpec,
 }
 
@@ -85,6 +100,9 @@ pub struct GearSpec {
     #[serde(default, rename = "_note")]
     pub note: String,
     pub boats: Vec<BoatSpec>,
+    /// The trolling boat's rods, lures and line (T26).
+    #[serde(default)]
+    pub trolling: Option<TrollSpec>,
     pub arms: ArmSpec,
     pub line: LineSpec,
     pub power: PowerSpec,
@@ -107,6 +125,9 @@ pub struct PlaceSpec {
     pub sea: SeaSpec,
     pub start_heading_deg: i32,
     pub fish: Vec<FishSpec>,
+    /// The fish a trolling boat finds here (T26).
+    #[serde(default)]
+    pub troll_fish: Vec<FishSpec>,
     #[serde(default)]
     pub scenery: ScenerySpec,
     /// The key of the name of the place's own weather, the first in the
@@ -179,6 +200,8 @@ pub enum Event {
     Jumped(usize),
     Snapped,
     Landed,
+    /// A fish struck rod `r`'s trolled lure.
+    Strike(usize),
 }
 
 /// A landed fish.
@@ -226,13 +249,25 @@ pub struct World {
     pub pulling: bool,
     /// Ticks Space has been held.
     wind_ticks: u32,
+    /// A trolling boat's other rods' lines; the rod in play's line is `line`,
+    /// and its slot here holds the line it will give back (T26).
+    pub spread: Vec<Line>,
+    pub in_play: usize,
+    /// Each rod's lure last tick, for its speed.
+    spread_prev: Vec<V3>,
+    rod_keys: u32,
 }
 
 impl World {
     pub fn new(gear: GearSpec, place: PlaceSpec, boat: usize, seed: u64) -> World {
+        let boat = boat.min(gear.boats.len().saturating_sub(1));
+        // a trolling boat finds the place's trolling fish
+        let mut place = place;
+        if gear.boats[boat].trolling && !place.troll_fish.is_empty() {
+            place.fish = place.troll_fish.clone();
+        }
         let sea = Sea::new(&place.sea);
         let heading = place.start_heading_deg * fx::TURN / 360;
-        let boat = boat.min(gear.boats.len().saturating_sub(1));
         let spec = gear.boats[boat].hull.clone();
         let mut hull = Hull::new(spec.clone(), V3::ZERO, heading);
         hull.pos.y = -fx::div(
@@ -275,11 +310,57 @@ impl World {
             power_ticks: 0,
             pulling: false,
             wind_ticks: 0,
+            spread: Vec::new(),
+            in_play: 0,
+            spread_prev: Vec::new(),
+            rod_keys: 0,
         };
+        if let Some(t) = w.troll().cloned() {
+            let behind = w.hull.forward().scale(-ONE);
+            w.spread = (0..t.rods.len())
+                .map(|r| t.laid_line(r, w.hull.to_world(t.tip_local(r)), behind))
+                .collect();
+            w.spread_prev = w.spread.iter().map(|l| l.end()).collect();
+            if !w.spread.is_empty() {
+                w.line = w.spread[0].clone();
+                w.prev_end = w.line.end();
+            }
+        }
         for i in 0..w.fish.len() {
             w.settle(i);
         }
         w
+    }
+
+    /// The trolling gear, when this boat trolls.
+    pub fn troll(&self) -> Option<&TrollSpec> {
+        if self.gear.boats[self.boat].trolling {
+            self.gear.trolling.as_ref()
+        } else {
+            None
+        }
+    }
+
+    /// Rod `r`'s line: the line in play, or the one in its holder.
+    pub fn rod_line(&self, r: usize) -> &Line {
+        if r == self.in_play {
+            &self.line
+        } else {
+            &self.spread[r]
+        }
+    }
+
+    /// Puts rod `r` in play: its line becomes the one the reel keys work and
+    /// the fish logic follows.
+    pub fn take_rod(&mut self, r: usize) {
+        if r == self.in_play || r >= self.spread.len() {
+            return;
+        }
+        std::mem::swap(&mut self.line, &mut self.spread[self.in_play]);
+        std::mem::swap(&mut self.line, &mut self.spread[r]);
+        self.in_play = r;
+        self.prev_end = self.line.end();
+        self.tensions.iter_mut().for_each(|t| *t = self.line.tension);
     }
 
     /// True when this boat is fished from.
@@ -288,16 +369,28 @@ impl World {
     }
 
     pub fn tip(&self) -> V3 {
-        self.hull.to_world(self.arms.rod().tip)
+        match self.troll() {
+            Some(t) => self.hull.to_world(t.tip_local(self.in_play)),
+            None => self.hull.to_world(self.arms.rod().tip),
+        }
     }
 
-    /// The angler's place on the water, for landing and spooking fish.
+    /// The angler's place on the water, for landing and spooking fish: on a
+    /// trolling boat, at the stern, where a fish is gaffed.
     pub fn angler(&self) -> V3 {
+        if self.troll().is_some() {
+            return self
+                .hull
+                .to_world(v3(0, ONE * 8 / 10, -self.hull.length() / 2 + ONE / 2));
+        }
         self.hull.to_world(v3(0, ONE / 2, -ONE / 3))
     }
 
     fn reset_line(&mut self) {
-        self.line = Line::new(self.gear.line.clone(), self.tip());
+        self.line = match self.troll().cloned() {
+            Some(t) => t.laid_line(self.in_play, self.tip(), self.hull.forward().scale(-ONE)),
+            None => Line::new(self.gear.line.clone(), self.tip()),
+        };
         self.holder = None;
     }
 
@@ -310,8 +403,17 @@ impl World {
         self.tick += 1;
         // in a boat that is not fished from, Space snaps its throttle to neutral
         let neutral = !self.fishing() && keys & bits::WIND != 0;
+        // 1 to 4 take a rod from its holder, on the key's press
+        for (r, b) in bits::RODS.iter().enumerate() {
+            if keys & b != 0 && self.rod_keys & b == 0 {
+                self.take_rod(r);
+            }
+        }
+        self.rod_keys = keys & bits::RODS.iter().fold(0, |a, b| a | b);
         // from a boat that is not fished from, the arm and reel keys do nothing
-        let keys = if self.fishing() {
+        let keys = if self.troll().is_some() {
+            keys & !(bits::ARMS | bits::FINGER)
+        } else if self.fishing() {
             keys
         } else {
             keys & !(bits::ARMS | bits::FINGER | bits::WIND | bits::POWER_WIND | bits::LET_OUT)
@@ -381,7 +483,36 @@ impl World {
             }
             None => self.line.lure(),
         };
-        let pull = self.line.tick(&self.sea, tip, line_input, end);
+        // a trolled lure's lip pulls it down as the boat tows it
+        let end = match (self.troll().cloned(), self.holder) {
+            (Some(t), None) => {
+                let e = self.line.end();
+                t.load(
+                    self.in_play,
+                    &self.line,
+                    self.lure_vel.sub(self.sea.current_at(e.x, e.z)),
+                )
+            }
+            _ => end,
+        };
+        let mut pull = self.line.tick(&self.sea, tip, line_input, end);
+        // the other rods tow their lures from their holders
+        if let Some(t) = self.troll().cloned() {
+            for r in 0..self.spread.len() {
+                if r == self.in_play {
+                    continue;
+                }
+                let e = self.spread[r].end();
+                let vel = e.sub(self.spread_prev[r]).scale(TICKS_PER_SECOND as i32 * ONE);
+                self.spread_prev[r] = e;
+                let load = t.load(r, &self.spread[r], vel.sub(self.sea.current_at(e.x, e.z)));
+                let rod_tip = self.hull.to_world(t.tip_local(r));
+                pull = pull.add(self.spread[r].tick(&self.sea, rod_tip, LineInput::default(), load));
+                if self.spread[r].snapped {
+                    self.spread[r] = t.laid_line(r, rod_tip, self.hull.forward().scale(-ONE));
+                }
+            }
+        }
         self.hull.tick(&self.sea, hull_input, pull);
         let e = self.line.end();
         self.lure_vel = e.sub(self.prev_end).scale(TICKS_PER_SECOND as i32 * ONE);
@@ -430,8 +561,15 @@ impl World {
                 continue;
             }
             let spec = self.place.fish[self.fish[i].species].clone();
-            let here = self.around(i, scene);
+            // on a trolling boat a fish goes for the nearest lure of the spread
+            let (rod, near) = self.nearest_lure(i, scene);
+            let here = self.around(i, near);
             let said = self.fish[i].tick(&spec, &here, &mut self.rng);
+            if said == Some(Happened::Bit) && self.holder.is_none() && rod != self.in_play {
+                // the struck rod's reel screams, and it is the rod taken up
+                self.take_rod(rod);
+                self.events.push(Event::Strike(rod));
+            }
             self.keep_in_water(i);
             self.say(i, said);
             if said == Some(Happened::Bit) && self.holder.is_none() {
@@ -516,6 +654,36 @@ impl World {
         self.keep_in_water(i);
         let p = self.fish[i].pos;
         self.fish[i].pos.y = p.y.max(self.sea.bed_at(p.x, p.z) + ONE / 3);
+    }
+
+    /// The lure of the spread nearest fish `i`, as a scene, and its rod; the
+    /// shared scene on a boat that does not troll.
+    fn nearest_lure(&self, i: usize, scene: Scene) -> (usize, Scene) {
+        if self.spread.is_empty() || self.holder.is_some() {
+            return (self.in_play, scene);
+        }
+        let at = self.fish[i].pos;
+        let best = (0..self.spread.len())
+            .min_by_key(|&r| self.rod_line(r).end().sub(at).len())
+            .unwrap_or(self.in_play);
+        if best == self.in_play {
+            return (best, scene);
+        }
+        let e = self.spread[best].end();
+        let vel = e.sub(self.spread_prev[best]).scale(TICKS_PER_SECOND as i32 * ONE);
+        let surface = self.sea.height(e.x, e.z);
+        (
+            best,
+            Scene {
+                lure: e,
+                lure_vel: vel,
+                lure_wet: e.y < surface,
+                splash: false,
+                water: self.sea.current_at(e.x, e.z),
+                tension: self.spread[best].tension,
+                ..scene
+            },
+        )
     }
 
     fn say(&mut self, i: usize, said: Option<Happened>) {
@@ -828,6 +996,61 @@ pub mod tests {
             w.step(WIND);
         }
         assert!(w.line.out < out - ONE, "out {} from {out}", w.line.out);
+    }
+
+    #[test]
+    fn a_trolling_boat_streams_its_spread_and_draws_strikes() {
+        // the trolling boat at 30% throttle: four lures behind the stern within
+        // half a minute, and a fish hooked within ten minutes on each seed (T26)
+        for seed in 1..=3 {
+            let mut w = world_at(0, 2, seed);
+            for _ in 0..60 {
+                w.step(bits::PEDAL);
+            }
+            // 30% a second for a second, in whole Q16 steps a tick
+            assert!(
+                (w.hull.throttle - ONE * 3 / 10).abs() < ONE / 500,
+                "{}",
+                w.hull.throttle
+            );
+            for _ in 0..1800 {
+                w.step(0);
+            }
+            let stern = w.hull.to_world(v3(0, 0, -w.hull.length() / 2));
+            for r in 0..4 {
+                let back = w.rod_line(r).end().sub(stern).dot(w.hull.forward()) as Fx;
+                // towed, each lure keeps up: no further back than its line
+                // (55 m at most) and the rod's place on the boat allow
+                assert!(
+                    back < -10 * ONE && back > -70 * ONE,
+                    "rod {r}'s lure is {back} along the boat on seed {seed}"
+                );
+            }
+            let mut hooked = false;
+            for _ in 0..34_200 {
+                w.step(0);
+                if w.events.iter().any(|e| matches!(e, Event::HookSet(_))) {
+                    hooked = true;
+                    break;
+                }
+            }
+            assert!(hooked, "no fish hooked trolling on seed {seed}");
+        }
+    }
+
+    #[test]
+    fn a_rod_key_puts_that_rod_in_play() {
+        let mut w = world_at(0, 2, 1);
+        assert_eq!(w.in_play, 0);
+        // the left flat line starts 20 m back (data/gear.json)
+        w.step(bits::ROD_3);
+        assert_eq!(w.in_play, 2);
+        assert!((w.line.out - 20 * ONE).abs() < ONE, "out {}", w.line.out);
+        assert!((w.spread[0].out - 45 * ONE).abs() < ONE, "rod 1 keeps its 45 m");
+        // holding the key does not take it again; Q lets the rod in play out
+        w.step(bits::ROD_3 | bits::LET_OUT);
+        assert_eq!(w.in_play, 2);
+        assert!(w.line.out > 20 * ONE);
     }
 
     #[test]

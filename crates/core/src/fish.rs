@@ -141,7 +141,9 @@ impl Fish {
         let length = cm(rng.between(spec.length_cm[0], spec.length_cm[1].max(spec.length_cm[0])));
         let shortest = cm(spec.length_cm[0].max(1));
         let r = fx::div(length, shortest);
-        let mass = fx::mul(spec.grams_at_shortest * ONE / 1000, fx::mul(r, fx::mul(r, r)));
+        // in 64 bits: a 90 kg marlin's grams times ONE pass i32
+        let at_shortest = (spec.grams_at_shortest as i64 * ONE as i64 / 1000) as Fx;
+        let mass = fx::mul(at_shortest, fx::mul(r, fx::mul(r, r)));
         let a = rng.below(fx::TURN as u32) as i32;
         let dist = cm(rng.between(1500, 4500));
         let depth = cm(rng.between(spec.depth_cm[0], spec.depth_cm[1].max(spec.depth_cm[0])));

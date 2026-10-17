@@ -4,17 +4,17 @@ The source of truth for what each word in this tool means. Strings, tests, the p
 
 Write each entry as a `### Term` heading, then one or two plain sentences, then an optional `Not:` line listing words that must not be used for it. A number a rule decides is a `{placeholder}` the core fills, so the glossary cannot disagree with the rules. Keep entries in alphabetical order. `crates/core/tests/copy.rs` checks the format, the placeholders and the `Not:` words; `TONE.md` governs the prose.
 
-### Bait
-
-Something on the hook that a fish wants to eat. In this game the bait is worked through the water by moving the rod.
-
-Not: food, treat
-
 ### Bail
 
 The wire arm on the reel. Open, it lets line run off freely, as in a cast; closed, line comes off only through the drag. Winding the reel closes it.
 
 Not: latch, gate
+
+### Bait
+
+Something on the hook that a fish wants to eat. In this game the bait is worked through the water by moving the rod.
+
+Not: food, treat
 
 ### Battery
 
@@ -94,6 +94,12 @@ The space in front of a fish's open mouth that its suction reaches, about one ga
 
 Not: target, hitbox
 
+### Outrigger
+
+A long pole swung out from each side of the sportfisher. Its line runs out to a clip at the pole's end, so its lure trolls wide of the others.
+
+Not: boom, spar
+
 ### Pedal drive
 
 The pedals under the angler's feet that push the kayak forward. A rudder at the stern steers it.
@@ -130,6 +136,18 @@ A fast planing craft driven with the same keys as the kayak. It rides up on its 
 
 Not: jetski, hovercraft
 
+### Sportfisher
+
+The craft for trolling, with a centre console, outriggers and rods in holders. It is driven with a throttle lever and an outboard, like the speedboat, at trolling speeds.
+
+Not: trawler, yacht
+
+### Spread
+
+The sportfisher's lines together: each rod's line streaming behind at its own distance and depth.
+
+Not: array, fleet
+
 ### Strike
 
 A fish's fast rush at the bait before it bites. A strike can miss.
@@ -153,6 +171,12 @@ Not: stress, strain, pressure
 The slow rise and fall of the water level on a coast, over a cycle of {tide.period_minutes} minutes in game time. It moves the shoreline and the tidal current.
 
 Not: sea level
+
+### Trolling
+
+Fishing by towing lures behind a moving hull, from rods in holders, instead of casting them.
+
+Not: trawling, dragging
 
 <!--
 An example entry. It sits inside this comment, so it does not count.

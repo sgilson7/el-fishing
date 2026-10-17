@@ -60,7 +60,9 @@ pub struct View {
 pub fn build(w: &World, look: &Look, view: &View) -> Batch {
     let mut b = Batch::new(view.meshes);
     if view.own_body {
-        if w.fishing() {
+        if w.troll().is_some() {
+            troller(&mut b, w, look);
+        } else if w.fishing() {
             kayak(&mut b, w, look);
         } else {
             speedboat(&mut b, w, look);
@@ -68,7 +70,9 @@ pub fn build(w: &World, look: &Look, view: &View) -> Batch {
         angler(&mut b, w, look);
     }
     // the rod and line stay out of the close-up of a landed fish
-    if w.fishing() && view.shown.is_none() {
+    if w.troll().is_some() {
+        spread(&mut b, w, look, view.shown.is_none());
+    } else if w.fishing() && view.shown.is_none() {
         rod_and_line(&mut b, w, look, view.own_body);
     }
     for (i, f) in w.fish.iter().enumerate() {
@@ -123,6 +127,89 @@ fn rain(b: &mut Batch, w: &World, look: &Look, eye: V3) {
             col,
             look.rain_glow * ONE / 1000,
         );
+    }
+}
+
+/// The trolling boat (T26): a centre-console hull with a T-top, outriggers
+/// swung out to the sides and rods in holders at the stern.
+fn troller(b: &mut Batch, w: &World, look: &Look) {
+    let col = |n: &str| look.colour(n);
+    let h = &w.hull;
+    let s = &h.spec;
+    let k = |cm: i32, kayak: i32| ONE * cm / kayak;
+    let hf = Frame3 {
+        x: h.rotate(v3(k(s.beam_cm, 86) * 3 / 4, 0, 0)),
+        y: h.rotate(v3(0, k(s.depth_cm, 30) * 2 / 3, 0)),
+        z: h.rotate(v3(0, 0, k(s.length_cm, 390))),
+    };
+    b.solid(Shape::Hull as usize, h.pos, &hf, col("boat_hull"));
+    part(
+        b,
+        h,
+        Shape::Cube,
+        cm(0, 60, -40),
+        cm(190, 6, 560),
+        col("boat_deck"),
+    );
+    // the console and the T-top over it
+    part(
+        b,
+        h,
+        Shape::Cube,
+        cm(0, 100, 30),
+        cm(90, 80, 70),
+        col("boat_deck"),
+    );
+    part(b, h, Shape::Cube, cm(0, 132, 66), cm(80, 36, 4), col("lens"));
+    part(
+        b,
+        h,
+        Shape::Cube,
+        cm(0, 260, 20),
+        cm(200, 8, 180),
+        col("boat_trim"),
+    );
+    for sx in [-1, 1] {
+        for sz in [-1, 1] {
+            let foot = h.to_world(cm(sx * 90, 60, 20 + sz * 80));
+            let top = h.to_world(cm(sx * 90, 256, 20 + sz * 80));
+            bone(b, foot, top, ONE * 3 / 100, col("reel"));
+        }
+    }
+    // two outboards on the transom
+    for sx in [-1, 1] {
+        part(
+            b,
+            h,
+            Shape::Cube,
+            cm(sx * 45, 80, -385),
+            cm(40, 70, 45),
+            col("dark"),
+        );
+        part(
+            b,
+            h,
+            Shape::Cube,
+            cm(sx * 45, 20, -400),
+            cm(12, 80, 20),
+            col("dark"),
+        );
+    }
+    // the outriggers: from the T-top's sides out to their clips
+    if let Some(t) = w.troll() {
+        for r in 0..t.rods.len() {
+            let tip = t.tip_local(r);
+            if tip.x.abs() > 2 * ONE {
+                let side = if tip.x > 0 { 1 } else { -1 };
+                bone(
+                    b,
+                    h.to_world(cm(side * 100, 260, 20)),
+                    h.to_world(tip),
+                    ONE * 3 / 100,
+                    col("rod"),
+                );
+            }
+        }
     }
 }
 
@@ -318,6 +405,92 @@ fn rod_and_line(b: &mut Batch, w: &World, look: &Look, own_body: bool) {
             lure,
             look.lure_glow * ONE / 1000,
         );
+    }
+}
+
+/// One line from `from` along its points, the scene's one bright colour with a
+/// glow, and its lure unless a fish has it.
+fn draw_line(b: &mut Batch, look: &Look, pts: &[V3], from: V3, lure_shown: bool) {
+    let line = look.colour("line");
+    let glow = look.line_glow * ONE / 1000;
+    for i in 0..pts.len() - 1 {
+        let a = if i == 0 { from } else { pts[i] };
+        let c = pts[i + 1];
+        if c.sub(a).len() == 0 {
+            continue;
+        }
+        let mid = a.lerp(c, ONE / 2);
+        b.push(
+            Shape::Cyl as usize,
+            Pass::Solid,
+            mid,
+            &Frame3::between(a, c, ONE / 160),
+            line,
+            ONE,
+        );
+        b.push(
+            Shape::Cyl as usize,
+            Pass::Glow,
+            mid,
+            &Frame3::between(a, c, ONE / 40),
+            line,
+            glow,
+        );
+    }
+    if lure_shown {
+        let e = pts[pts.len() - 1];
+        let lure = look.colour("lure");
+        b.push(
+            Shape::Ball as usize,
+            Pass::Solid,
+            e,
+            &Frame3::upright(cm(6, 6, 14)),
+            lure,
+            ONE / 2,
+        );
+        b.push(
+            Shape::Ball as usize,
+            Pass::Glow,
+            e,
+            &Frame3::upright(cm(24, 24, 24)),
+            lure,
+            look.lure_glow * ONE / 1000,
+        );
+    }
+}
+
+/// A trolling boat's rods in their holders and every line of its spread.
+fn spread(b: &mut Batch, w: &World, look: &Look, lines: bool) {
+    let Some(t) = w.troll() else {
+        return;
+    };
+    let h = &w.hull;
+    let col = |n: &str| look.colour(n);
+    for r in 0..t.rods.len() {
+        let tip = h.to_world(t.tip_local(r));
+        // a flat line's rod stands in its holder; an outrigger's rod stands
+        // at the gunwale and its line runs out to the clip
+        let base = t.tip_local(r);
+        let butt = h.to_world(v3(
+            base.x.signum() * ONE * 85 / 100,
+            ONE * 70 / 100,
+            -ONE * 300 / 100,
+        ));
+        let rod_tip = if base.x.abs() > 2 * ONE {
+            h.to_world(v3(
+                base.x.signum() * ONE * 120 / 100,
+                ONE * 230 / 100,
+                -ONE * 380 / 100,
+            ))
+        } else {
+            tip
+        };
+        bone(b, butt, rod_tip, ONE * 15 / 1000, col("rod"));
+        if lines {
+            let line = w.rod_line(r);
+            let held = r == w.in_play && w.holder.is_some();
+            draw_line(b, look, &line.pts, tip, !held);
+        }
     }
 }
 

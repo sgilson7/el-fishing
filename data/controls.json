@@ -12,7 +12,11 @@
     "ArrowLeft": "drift_left",
     "ArrowRight": "drift_right",
     "KeyE": "power_wind",
-    "KeyQ": "let_out"
+    "KeyQ": "let_out",
+    "Digit1": "rod_1",
+    "Digit2": "rod_2",
+    "Digit3": "rod_3",
+    "Digit4": "rod_4"
   },
   "mouse": {
     "2": "scope"

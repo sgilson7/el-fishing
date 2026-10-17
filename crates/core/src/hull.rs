@@ -329,8 +329,9 @@ impl Hull {
             };
             if let Some(o) = &s.outboard {
                 let torque = fx::mul(push_side, self.length() / 2);
-                let damp_t = fx::mul(o.yaw_damp * ONE, self.yaw_rate);
-                let alpha = fx::div(torque - damp_t, o.yaw_inertia_kg_m2 * ONE);
+                // in 64 bits: a heavy hull's damping times ONE passes i32
+                let damp_t = o.yaw_damp as i64 * self.yaw_rate as i64;
+                let alpha = div64(torque as i64 - damp_t, o.yaw_inertia_kg_m2 * ONE);
                 self.yaw_rate += fx::mul(alpha, h);
                 self.heading = (self.heading + rad_to_turns(fx::mul(self.yaw_rate, h))).rem_euclid(fx::TURN);
             }

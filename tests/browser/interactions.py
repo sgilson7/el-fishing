@@ -107,7 +107,7 @@ def run(page, check, engine):
     page.keyboard.press("Escape")
     page.click("#settings .btn >> text=" + STRINGS["log.open"])
     page.wait_for_selector("body[data-screen='log']")
-    kinds = sum(len(p["fish"]) for p in PLACES)
+    kinds = sum(len(p["fish"]) + len(p.get("troll_fish", [])) for p in PLACES)
     check(page.locator("#log .row").count() == kinds, f"the log lists all {kinds} kinds of fish")
 
     # the Open Swell's storm, from the weather dropdown (T18): worked by hand from
@@ -139,4 +139,21 @@ def run(page, check, engine):
     check(STRINGS["craft.speedboat"] not in labels, "the speedboat is not offered at a fishing place")
     page.click("#title-card .btn.go")
     page.wait_for_selector("body[data-screen='fishing']")
+    # the trolling boat (T26): four rods in the spread panel, and the lever under way
+    page.keyboard.press("Escape")
+    page.click("#settings .btn >> text=" + STRINGS["change.place"])
+    page.click("#title-card .chip >> text=" + STRINGS["place.open_swell"])
+    page.click("#title-card .chip >> text=" + STRINGS["craft.troller"])
+    page.wait_for_function("() => document.body.dataset.boat === '2'")
+    page.click("#title-card .btn.go")
+    page.wait_for_selector("#spread")
+    rods = len(GEAR["trolling"]["rods"])
+    check(page.locator("#spread .row").count() == rods, f"the spread panel lists the {rods} rods")
+    hold(page, ["ArrowUp"], 60)
+    hold(page, [], 300)
+    speed = float(page.get_attribute("body", "data-speed"))
+    check(speed > 5, f"the trolling boat gets under way on its lever ({speed} km/h)")
+    hold(page, ["Digit2"], 2)
+    check(STRINGS["spread.in_play"] in page.locator("#spread .row").nth(1).inner_text() or page.get_attribute("body", "data-hooked") == "true",
+          "key 2 takes the right outrigger, unless a fish struck first")
     check(page.inner_text("#error") == "", "no error message is shown")

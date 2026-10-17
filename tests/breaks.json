@@ -86,8 +86,8 @@
   {
     "name": "a fish's weight grows as the cube of its length",
     "file": "crates/core/src/fish.rs",
-    "find": "fx::mul(spec.grams_at_shortest * ONE / 1000, fx::mul(r, fx::mul(r, r)))",
-    "replace": "fx::mul(spec.grams_at_shortest * ONE / 1000, fx::mul(r, r))",
+    "find": "        let mass = fx::mul(at_shortest, fx::mul(r, fx::mul(r, r)));",
+    "replace": "        let mass = fx::mul(at_shortest, fx::mul(r, r));",
     "test": "weight_grows_as_the_cube_of_length"
   },
   {
@@ -107,8 +107,8 @@
   {
     "name": "the scope's view leaves out the kayak (T9)",
     "file": "crates/core/src/scene.rs",
-    "find": "    if view.own_body {\n        if w.fishing() {",
-    "replace": "    if true {\n        if w.fishing() {",
+    "find": "    if view.own_body {\n        if w.troll().is_some() {",
+    "replace": "    if true {\n        if w.troll().is_some() {",
     "test": "the_scope_sees_through_the_kayak"
   },
   {
@@ -205,7 +205,7 @@
   {
     "name": "the speedboat is not fished from (speedboat)",
     "file": "crates/core/src/world.rs",
-    "find": "            keys & !(bits::ARMS | bits::FINGER | bits::WIND | bits::POWER_WIND)",
+    "find": "            keys & !(bits::ARMS | bits::FINGER | bits::WIND | bits::POWER_WIND | bits::LET_OUT)",
     "replace": "            keys",
     "test": "the_speedboat_is_not_fished_from"
   },
@@ -278,5 +278,33 @@
     "find": "            wind: self.wind_ticks > TICKS_PER_SECOND as u32 / 5,",
     "replace": "            wind: on(WIND),",
     "test": "a_tap_of_space_closes_the_bail_and_holds_the_line"
+  },
+  {
+    "name": "a towed plug's lip pulls it down (T26)",
+    "file": "crates/core/src/troll.rs",
+    "find": "            end.force = v3(0, -fx::mul(lure.dive_dn_at_3 * ONE / 10, fx::mul(k, k)), 0);",
+    "replace": "            end.force = v3(0, -fx::mul(lure.dive_dn_at_3 * 0, fx::mul(k, k)), 0);",
+    "test": "a_towed_plug_settles_where_its_lip_and_weight_balance_its_drag"
+  },
+  {
+    "name": "the other rods tow their lures (T26)",
+    "file": "crates/core/src/world.rs",
+    "find": "                pull = pull.add(self.spread[r].tick(&self.sea, rod_tip, LineInput::default(), load));",
+    "replace": "                let _ = (rod_tip, load);",
+    "test": "a_trolling_boat_streams_its_spread_and_draws_strikes"
+  },
+  {
+    "name": "a rod key swaps the line in play (T26)",
+    "file": "crates/core/src/world.rs",
+    "find": "        std::mem::swap(&mut self.line, &mut self.spread[r]);\n",
+    "replace": "\n",
+    "test": "a_rod_key_puts_that_rod_in_play"
+  },
+  {
+    "name": "an emptied spool parts the line (T26)",
+    "file": "crates/core/src/line.rs",
+    "find": "                    self.snapped = true;\n                }",
+    "replace": "                    let _ = 0;\n                }",
+    "test": "a_run_that_empties_the_spool_parts_the_line"
   }
 ]

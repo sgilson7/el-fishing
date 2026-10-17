@@ -68,6 +68,45 @@
           "bank": 200
         }
       }
+    },
+    {
+      "name": "craft.troller",
+      "fishing": true,
+      "trolling": true,
+      "hull": {
+        "length_cm": 750,
+        "beam_cm": 260,
+        "depth_cm": 70,
+        "mass_kg": 2200,
+        "probe_area_cm2": 8500,
+        "thrust_n": 4500,
+        "reverse_pct": 30,
+        "drag_along": 70,
+        "drag_across": 3000,
+        "drag_across_linear": 1500,
+        "heave_damp": 500,
+        "pitch_damp": 450,
+        "roll_damp": 400,
+        "pitch_inertia_kg_m2": 10300,
+        "roll_inertia_kg_m2": 1240,
+        "weight_above_keel_cm": 60,
+        "max_roll_deg": 30,
+        "drift_deg_s": 20,
+        "windage": 1500,
+        "wave_push_pct": 100,
+        "steady_pct": 50,
+        "pivot_pct": -30,
+        "planing_n": 6000,
+        "outboard": {
+          "steer_max_deg": 30,
+          "steer_deg_s": 60,
+          "centre_deg_s": 90,
+          "throttle_pct_s": 30,
+          "yaw_inertia_kg_m2": 10000,
+          "yaw_damp": 40000,
+          "bank": 300
+        }
+      }
     }
   ],
   "arms": {
@@ -133,5 +172,91 @@
   "hook_set_dn": 40,
   "hook_set_ms": 250,
   "land_reach_cm": 350,
-  "land_line_cm": 300
+  "land_line_cm": 300,
+  "trolling": {
+    "_note": "The trolling boat's spread (T26): two outrigger clips far out to the sides with the longest lines, two flat lines off the transom corners, and a shotgun line down the middle from the top of the T-top. Line is 30 kg monofilament (294 N) with the drag near a third of that. Hull space: x across, y up, z toward the bow, cm.",
+    "line": {
+      "points": 40,
+      "start_out_cm": 4000,
+      "shortest_out_cm": 100,
+      "longest_out_m": 300,
+      "break_dn": 2940,
+      "drag_dn": 900,
+      "diameter_um": 600,
+      "density_kg_m3": 1150,
+      "point_floor_mg": 400,
+      "lure_mass_g": 250,
+      "lure_volume_mm3": 120000,
+      "lure_area_mm2": 3000,
+      "stretch_at_break_pct": 20,
+      "damping_pct": 20,
+      "iterations": 12,
+      "along_drag_pct": 2,
+      "free_slack_pct": 20,
+      "wind_per_turn_cm": 120,
+      "power_wind_cm_s": 700,
+      "power_pull_dn": 1500,
+      "turns_per_s_x10": 25,
+      "rod_stiffness_n_m": 120,
+      "rod_bend_max_cm": 90
+    },
+    "rods": [
+      {
+        "name": "rod.left_rigger",
+        "tip_cm": [
+          -480,
+          320,
+          -150
+        ],
+        "back_m": 45,
+        "lure": 0
+      },
+      {
+        "name": "rod.right_rigger",
+        "tip_cm": [
+          480,
+          320,
+          -150
+        ],
+        "back_m": 55,
+        "lure": 0
+      },
+      {
+        "name": "rod.left_flat",
+        "tip_cm": [
+          -100,
+          120,
+          -370
+        ],
+        "back_m": 20,
+        "lure": 1
+      },
+      {
+        "name": "rod.right_flat",
+        "tip_cm": [
+          100,
+          120,
+          -370
+        ],
+        "back_m": 25,
+        "lure": 1
+      }
+    ],
+    "lures": [
+      {
+        "name": "lure.skirt",
+        "mass_g": 250,
+        "volume_mm3": 120000,
+        "area_mm2": 3000,
+        "dive_dn_at_3": 0
+      },
+      {
+        "name": "lure.plug",
+        "mass_g": 180,
+        "volume_mm3": 90000,
+        "area_mm2": 2400,
+        "dive_dn_at_3": 60
+      }
+    ]
+  }
 }

@@ -173,7 +173,7 @@ impl Session {
                 }
             }
             names.push(p.name.clone());
-            names.extend(p.fish.iter().map(|f| f.name.clone()));
+            names.extend(kinds(p).iter().map(|f| f.name.clone()));
         }
         names.extend(gear.boats.iter().map(|b| b.name.clone()));
         for n in names {
@@ -185,7 +185,7 @@ impl Session {
         let mut fish_base = Vec::new();
         for p in &places {
             fish_base.push(meshes.len());
-            for f in &p.fish {
+            for f in kinds(p) {
                 meshes.push(mesh::fish_body(f));
             }
         }
@@ -235,6 +235,16 @@ impl Session {
         s.place_camera(true);
         s.build_frame();
         Ok(s)
+    }
+
+    /// A species of the world's fish as one of the place's kinds: the
+    /// trolling fish follow the casting fish in that list.
+    fn kind(&self, species: usize) -> usize {
+        if self.world.troll().is_some() && !self.places[self.place].troll_fish.is_empty() {
+            self.places[self.place].fish.len() + species
+        } else {
+            species
+        }
     }
 
     /// Builds the world afresh at the chosen place in the chosen boat.
@@ -351,6 +361,8 @@ impl Session {
         let text = match e {
             Event::Noticed(i) => say(self, "event.noticed", Some(i)),
             Event::Struck(i) => say(self, "event.struck", Some(i)),
+            // on a trolling boat the hull's own speed sets the hook
+            Event::Bit(_) if self.world.troll().is_some() => say(self, "event.troll_bit", None),
             Event::Bit(_) => say(self, "event.bit", None),
             Event::Missed(i) => say(self, "event.missed", Some(i)),
             Event::Spat(i) => say(self, "event.spat", Some(i)),
@@ -359,6 +371,14 @@ impl Session {
             Event::Jumped(_) => say(self, "event.jumped", None),
             Event::Snapped => say(self, "event.snapped", None),
             Event::Landed => return,
+            Event::Strike(r) => {
+                let rod = self
+                    .world
+                    .troll()
+                    .map(|t| self.strings.get(&t.rods[r].name))
+                    .unwrap_or_default();
+                self.strings.fill("event.strike", &[("rod", rod)])
+            }
         };
         self.message = Some((text, self.world.tick));
     }
@@ -427,7 +447,7 @@ impl Session {
         if let Some(c) = &self.world.landed {
             self.log.push(Logged {
                 place: self.place,
-                species: c.species,
+                species: self.kind(c.species),
                 length: c.length,
                 mass: c.mass,
             });
@@ -522,7 +542,7 @@ impl Session {
         let view = scene::View {
             meshes: self.meshes.len(),
             own_body: !self.scoping(),
-            fish_base: self.fish_base[self.place],
+            fish_base: self.fish_base[self.place] + self.kind(0),
             shown: self.shown_fish(),
             eye: self.camera.eye,
         };
@@ -718,7 +738,7 @@ impl Session {
             s.fill(tide_key, &[("height", decimal(w.sea.level(), 2))])
         };
         let mut rows = Vec::new();
-        if !w.fishing() {
+        if w.hull.spec.outboard.is_some() {
             // km/h: m/s × 3.6
             rows.push(json!([
                 s.get("row.speed"),
@@ -753,7 +773,7 @@ impl Session {
         if w.sea.river.is_none() {
             rows.push(json!([s.get("row.swell"), swell]));
         }
-        if w.fishing() {
+        if w.fishing() && w.troll().is_none() {
             rows.push(json!([
                 s.get("row.line_out"),
                 s.fill("value.metres", &[("metres", decimal(w.line.out, 1))])
@@ -780,11 +800,37 @@ impl Session {
         if !w.fishing() {
             return s.get("hint.drive");
         }
+        if w.troll().is_some() && w.holder.is_none() {
+            // the speed the trolled fish here like, through the water
+            let lo = w
+                .place
+                .fish
+                .iter()
+                .map(|f| f.lure_speed_mm_s[0])
+                .min()
+                .unwrap_or(0);
+            let hi = w
+                .place
+                .fish
+                .iter()
+                .map(|f| f.lure_speed_mm_s[1])
+                .max()
+                .unwrap_or(0);
+            return s.fill(
+                "hint.troll",
+                &[
+                    ("speed", decimal(w.hull.speed(), 1)),
+                    ("slow", plain(lo, 1000)),
+                    ("fast", plain(hi, 1000)),
+                ],
+            );
+        }
         if let Some(i) = w.holder {
             let f = &w.fish[i];
             return match f.mood {
                 Mood::Hooked if f.stamina < ONE / 4 => s.fill("hint.land", &[("fish", self.fish_name(i))]),
                 Mood::Hooked => s.get("hint.fight"),
+                _ if w.troll().is_some() => s.get("hint.troll_set"),
                 _ => s.get("hint.set"),
             };
         }
@@ -813,6 +859,17 @@ impl Session {
 
     fn keys_bar(&self) -> Vec<Value> {
         let s = &self.strings;
+        if self.world.troll().is_some() {
+            return vec![
+                json!(["↑ ↓", s.get("key.throttle")]),
+                json!(["← →", s.get("key.steer")]),
+                json!(["1–4", s.get("key.rods")]),
+                json!(["Space", s.get("key.wind")]),
+                json!(["Q", s.get("key.let_out")]),
+                json!(["RMB", s.get("key.scope")]),
+                json!(["Esc", s.get("key.menu")]),
+            ];
+        }
         if !self.world.fishing() {
             return vec![
                 json!(["↑ ↓", s.get("key.throttle")]),
@@ -945,7 +1002,7 @@ impl Session {
     /// A size word for a fish of this length among its kind: the quarter of
     /// the species' length range it falls in.
     fn size_word(&self, place: usize, species: usize, length: Fx) -> String {
-        let spec = &self.places[place].fish[species];
+        let spec = kinds(&self.places[place])[species];
         let lo = spec.length_cm[0] * ONE / 100;
         let hi = (spec.length_cm[1] * ONE / 100).max(lo + 1);
         let q = (fx::div(length - lo, hi - lo) * 4 / ONE).clamp(0, 3);
@@ -959,7 +1016,7 @@ impl Session {
         let s = &self.strings;
         let mut rows = Vec::new();
         for (pi, p) in self.places.iter().enumerate() {
-            for (si, f) in p.fish.iter().enumerate() {
+            for (si, f) in kinds(p).into_iter().enumerate() {
                 let mine: Vec<&Logged> = self
                     .log
                     .iter()
@@ -1002,7 +1059,13 @@ impl Session {
             .filter(|&i| !self.gear.boats[i].racing)
             .collect();
         let boats = json!({"name": "boat.choose", "options": offered.iter().map(|&i| json!({"value": i.to_string(), "label": s.get(&self.gear.boats[i].name), "on": i == self.boat})).collect::<Vec<_>>()});
-        let start = if w.fishing() { "start.fish" } else { "start.drive" };
+        let start = if w.troll().is_some() {
+            "start.troll"
+        } else if w.fishing() {
+            "start.fish"
+        } else {
+            "start.drive"
+        };
         // a place with more than one weather offers them in a dropdown (T18)
         let here = &self.places[self.place];
         let weathers: Vec<Value> = if here.weathers() > 1 {
@@ -1027,7 +1090,26 @@ impl Session {
                 {"name": "screen.show", "value": "log", "label": s.get("log.open"), "primary": false},
             ],
         })];
-        let how: Vec<String> = if w.fishing() {
+        let how: Vec<String> = if w.troll().is_some() {
+            let rods = w.troll().map(|t| t.rods.len()).unwrap_or(0);
+            let mut how = vec![
+                s.get("how.troll"),
+                s.fill("how.troll_spread", &[("rods", rods.to_string())]),
+            ];
+            how.extend(w.place.fish.iter().map(|f| {
+                s.fill(
+                    "how.troll_species",
+                    &[
+                        ("fish", s.get(&f.name)),
+                        ("slow", plain(f.lure_speed_mm_s[0], 1000)),
+                        ("fast", plain(f.lure_speed_mm_s[1], 1000)),
+                        ("to", plain(f.depth_cm[1], 100)),
+                    ],
+                )
+            }));
+            how.extend(["how.troll_strike", "how.troll_fight"].iter().map(|k| s.get(k)));
+            how
+        } else if w.fishing() {
             // one line a species, from its data: where it swims and the lure speed it likes
             let species = w.place.fish.iter().map(|f| {
                 s.fill(
@@ -1096,14 +1178,49 @@ impl Session {
                     "eyebrow": format!("{} · {}", s.get(&w.place.name), s.get(&w.place.weather)),
                     "rows": self.place_rows(),
                 }));
+                if let Some(t) = w.troll() {
+                    // the spread: each rod, its line out, its lure's depth, and which is in play
+                    let rows: Vec<Value> = (0..t.rods.len())
+                        .map(|r| {
+                            let l = w.rod_line(r);
+                            let e = l.end();
+                            let depth = (w.sea.height(e.x, e.z) - e.y).max(0);
+                            let state = if r == w.in_play {
+                                if w.holder.is_some() {
+                                    "spread.fish_on"
+                                } else {
+                                    "spread.in_play"
+                                }
+                            } else {
+                                "spread.holder"
+                            };
+                            json!([
+                                s.fill(
+                                    "spread.rod",
+                                    &[("n", (r + 1).to_string()), ("rod", s.get(&t.rods[r].name))]
+                                ),
+                                s.fill(
+                                    "spread.value",
+                                    &[
+                                        ("out", decimal(l.out, 0)),
+                                        ("depth", decimal(depth, 1)),
+                                        ("state", s.get(state))
+                                    ]
+                                ),
+                            ])
+                        })
+                        .collect();
+                    panels.push(json!({"id": "spread", "eyebrow": s.get("spread.heading"), "rows": rows}));
+                }
             }
             Screen::Landed => {
                 if let Some(c) = &w.landed {
                     let spec = &w.place.fish[c.species];
+                    let kind = self.kind(c.species);
                     let before = self
                         .log
                         .iter()
-                        .filter(|l| l.place == self.place && l.species == c.species)
+                        .filter(|l| l.place == self.place && l.species == kind)
                         .map(|l| l.length)
                         .max();
                     let best = match before {
@@ -1117,7 +1234,7 @@ impl Session {
                         "rows": [
                             [s.get("landed.length"), s.fill("value.cm", &[("cm", decimal(c.length * 100, 0))])],
                             [s.get("landed.weight"), s.fill("value.kg", &[("kg", decimal(c.mass, 1))])],
-                            [s.get("landed.size"), self.size_word(self.place, c.species, c.length)],
+                            [s.get("landed.size"), self.size_word(self.place, kind, c.length)],
                             [s.get("landed.best"), best],
                             [s.get("landed.fight"), s.fill("value.seconds", &[("seconds", (c.fight_ticks / TICKS_PER_SECOND as u32).to_string())])],
                             [s.get("landed.caught"), s.fill("value.count", &[("count", (self.log.len() + 1).to_string())])],
@@ -1150,12 +1267,12 @@ impl Session {
                 }));
             }
             Screen::Log => {
-                let total = self.places.iter().map(|p| p.fish.len()).sum::<usize>();
+                let total = self.places.iter().map(|p| kinds(p).len()).sum::<usize>();
                 let caught = self
                     .places
                     .iter()
                     .enumerate()
-                    .flat_map(|(pi, p)| (0..p.fish.len()).map(move |si| (pi, si)))
+                    .flat_map(|(pi, p)| (0..kinds(p).len()).map(move |si| (pi, si)))
                     .filter(|(pi, si)| self.log.iter().any(|l| l.place == *pi && l.species == *si))
                     .count();
                 panels.push(json!({
@@ -1188,7 +1305,7 @@ impl Session {
             "battery": self.battery(),
             "keys": self.keys_bar(),
             "arms": self.arm_panel(),
-            "arms_open": self.log.is_empty() && w.catches.is_empty(),
+            "arms_open": self.log.is_empty() && w.catches.is_empty() && w.troll().is_none(),
             "scope": self.scope(),
             "hints": self.hints(),
             "data": {
@@ -1206,6 +1323,11 @@ impl Session {
             },
         })
     }
+}
+
+/// Every kind of fish at a place: the ones cast for, then the ones trolled for.
+fn kinds(p: &PlaceSpec) -> Vec<&crate::fish::FishSpec> {
+    p.fish.iter().chain(p.troll_fish.iter()).collect()
 }
 
 /// The WebGL call that sets a uniform of this many floats: a 4×4 matrix at
@@ -1302,8 +1424,8 @@ pub mod tests {
     fn numbers_name_a_mesh_for_every_shape_and_species() {
         let s = session(1);
         let n = s.numbers();
-        // two species at the Open Swell and two on the Ledge River
-        assert_eq!(n["meshes"].as_array().unwrap().len(), SHAPES + 4);
+        // two cast and three trolled species at the Open Swell, two on the Ledge River
+        assert_eq!(n["meshes"].as_array().unwrap().len(), SHAPES + 7);
         let frame: usize = n["frame"]
             .as_array()
             .unwrap()
@@ -1393,10 +1515,10 @@ pub mod tests {
         assert_eq!(s.log.len(), 1);
         s.act("screen.show", "log").unwrap();
         let ui = s.ui();
-        // four kinds in data/places.json, one caught
+        // seven kinds in data/places.json, one caught
         assert_eq!(
             ui["panels"][0]["text"],
-            "1 of 4 kinds caught this visit. The log is kept until you close the page."
+            "1 of 7 kinds caught this visit. The log is kept until you close the page."
         );
         let caught = ui["panels"][0]["rows"]
             .as_array()

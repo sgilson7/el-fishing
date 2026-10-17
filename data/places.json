@@ -330,6 +330,119 @@
           ]
         ]
       }
+    ],
+    "troll_fish": [
+      {
+        "name": "fish.wahoo",
+        "count": 4,
+        "length_cm": [
+          100,
+          180
+        ],
+        "grams_at_shortest": 9000,
+        "depth_cm": [
+          50,
+          1200
+        ],
+        "cruise_mm_s": 2500,
+        "burst_mm_s": 20000,
+        "sense_cm": 2500,
+        "splash_cm": 3000,
+        "gape_mm": 80,
+        "lure_speed_mm_s": [
+          3000,
+          9000
+        ],
+        "interest_per_s": 60,
+        "hold_ms": 700,
+        "strike_ms": 600,
+        "strength_n": 45,
+        "stamina_s": 40,
+        "jumps": false,
+        "colours": [
+          "#1d3f6e",
+          "#5f86b5",
+          "#e6edf2",
+          "#2a4a7a"
+        ],
+        "pattern": "bars",
+        "depth_pct": 14,
+        "width_pct": 8
+      },
+      {
+        "name": "fish.yellowfin",
+        "count": 5,
+        "length_cm": [
+          80,
+          150
+        ],
+        "grams_at_shortest": 9000,
+        "depth_cm": [
+          100,
+          1500
+        ],
+        "cruise_mm_s": 2000,
+        "burst_mm_s": 15000,
+        "sense_cm": 2200,
+        "splash_cm": 2500,
+        "gape_mm": 90,
+        "lure_speed_mm_s": [
+          2500,
+          5500
+        ],
+        "interest_per_s": 55,
+        "hold_ms": 800,
+        "strike_ms": 700,
+        "strength_n": 60,
+        "stamina_s": 60,
+        "jumps": false,
+        "colours": [
+          "#16264a",
+          "#c9a93a",
+          "#f2efe6",
+          "#e8c23a"
+        ],
+        "pattern": "plain",
+        "depth_pct": 26,
+        "width_pct": 18
+      },
+      {
+        "name": "fish.marlin",
+        "count": 1,
+        "length_cm": [
+          250,
+          380
+        ],
+        "grams_at_shortest": 90000,
+        "depth_cm": [
+          50,
+          2000
+        ],
+        "cruise_mm_s": 2000,
+        "burst_mm_s": 20000,
+        "sense_cm": 3000,
+        "splash_cm": 3500,
+        "gape_mm": 150,
+        "lure_speed_mm_s": [
+          3000,
+          6000
+        ],
+        "interest_per_s": 40,
+        "hold_ms": 1200,
+        "strike_ms": 900,
+        "strength_n": 120,
+        "stamina_s": 120,
+        "jumps": true,
+        "colours": [
+          "#0f2a55",
+          "#2f5f9a",
+          "#e9eef2",
+          "#3b6aa8"
+        ],
+        "pattern": "bars",
+        "depth_pct": 18,
+        "width_pct": 9
+      }
     ]
   },
   {
