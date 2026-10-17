@@ -512,6 +512,17 @@ pub mod tests {
     }
 
     #[test]
+    fn a_fresh_fish_in_reach_is_not_landed() {
+        // the fish is on 1.2 m of line under the rod: in reach, but full of fight
+        let mut w = held(Mood::Hold);
+        w.fish[0].mood = Mood::Hooked;
+        for _ in 0..30 {
+            w.step(0);
+        }
+        assert!(w.landed.is_none());
+    }
+
+    #[test]
     fn a_spent_fish_brought_in_close_is_landed() {
         let mut w = held(Mood::Hold);
         w.fish[0].mood = Mood::Hooked;

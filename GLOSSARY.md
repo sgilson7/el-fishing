@@ -10,6 +10,12 @@ Something on the hook that a fish wants to eat. In this game the bait is worked 
 
 Not: food, treat
 
+### Bail
+
+The wire arm on the reel. Open, it lets line run off freely, as in a cast; closed, line comes off only through the drag. Winding the reel closes it.
+
+Not: latch, gate
+
 ### Bite
 
 The moment a fish closes its mouth on the bait. A bite counts only while the hook is inside the fish's mouth zone.
@@ -63,6 +69,12 @@ Not: string, rope, wire
 Bait made to look alive, such as a spinner or a soft plastic. It is worked with twitches and pauses of the rod.
 
 Not: jig, decoy
+
+### Mouth zone
+
+The space in front of a fish's open mouth that its suction reaches, about one gape across. A bite counts only while the hook is inside it.
+
+Not: target, hitbox
 
 ### Pedal drive
 

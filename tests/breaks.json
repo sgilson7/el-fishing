@@ -74,7 +74,7 @@
     "file": "crates/core/src/world.rs",
     "find": "        let spent = f.stamina < ONE / 4;",
     "replace": "        let spent = f.stamina < ONE * 2;",
-    "test": "a_spent_fish_brought_in_close_is_landed"
+    "test": "a_fresh_fish_in_reach_is_not_landed"
   },
   {
     "name": "the scope changes no rule",
