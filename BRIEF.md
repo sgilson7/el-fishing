@@ -55,7 +55,9 @@ Terms from fishing and paddling, defined in `GLOSSARY.md` before any string uses
 
 ## Autonomy
 
-The plan is **not** approved in advance: the person asked to review the water design and the mockups before anything is built. In this round the agent may write the brief, the glossary, the notebook, the research report, the paper and the mockups, and must then stop. Where this brief is silent, the agent decides, records the decision in `SECOND-ORDER.md`, and continues within this round. The agent may not loosen a Builder requirement or a boundary test, and may not add a server, an account, analytics or any off-origin request to the game. The agent may not publish the game. The design journal may be shared with the person as a private page.
+The plan is **not** approved in advance: the person asked to review the water design and the mockups before anything is built. In this round the agent may write the brief, the glossary, the notebook, the research report, the paper and the mockups, and must then stop. Where this brief is silent, the agent decides, records the decision in `SECOND-ORDER.md`, and continues within this round. The agent may not loosen a Builder requirement or a boundary test, and may not add a server, an account, analytics or any off-origin request to the game. The design journal may be shared with the person as a private page.
+
+Publishing, granted on 17 October 2026 in the person's words: *"fyi i give you approval to create a public github repo, and a public github pages when the time comes to store and deploy"*. The agent may create a public GitHub repository for the game and publish it to GitHub Pages with `./scripts/publish.sh`, once the plan has been read (stage 3), the game is built, and `./scripts/check.sh` passes, then run the browser check against the live address. "When the time comes" is read as: not in this design round. The repository takes the game's name once the person chooses it (`SECOND-ORDER.md` R1.1).
 
 ## Allowed core dependencies
 
