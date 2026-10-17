@@ -10,7 +10,7 @@ Pasted unchanged on 17 October 2026. It includes the instructions for this first
 
 ## The tool
 
-A 3D fishing game that runs in a desktop browser. The player sits in a pedal-drive kayak on a body of water (a pond, a lake, a river, a coast, open ocean), and the water moves under them: swell, wind chop, tide and current all push the kayak and the line. The player drives two arms joint by joint, in the manner of QWOP and Vagrancy, to swing a rod. The rod carries a simulated line and hook. The player casts, works the bait to draw fish, eases the hook into a fish's mouth, sets it, and reels the fish in against its pull. A scope over one eye zooms in on the water and the fish. Pedals drive the kayak straight ahead; a drift holds the bow still while the stern swings round. An arcade mode moves between bodies of water.
+*Extremely Lifelike Fishing* is a 3D fishing game that runs in a desktop browser. The player sits in a pedal-drive kayak on a body of water (a pond, a lake, a river, a coast, open ocean), and the water moves under them: swell, wind chop, tide and current all push the kayak and the line. The player drives two arms joint by joint, in the manner of QWOP and Vagrancy, to swing a rod. The rod carries a simulated line and hook. The player casts, works the bait to draw fish, eases the hook into a fish's mouth, sets it, and reels the fish in against its pull. A scope over one eye zooms in on the water and the fish. Pedals drive the kayak straight ahead; a drift holds the bow still while the stern swings round. An arcade mode moves between bodies of water.
 
 The water model is meant to outlive this game: a deterministic, tested water core other Builder games can reuse.
 
@@ -33,7 +33,7 @@ Draft, for the person to revise at stage 3. Each condition is checkable.
 
 ## Decisions that stay with the person
 
-- The game's name. The project folder is `fishing-game` until one is chosen.
+- The game's name: *Extremely Lifelike Fishing* (chosen 17 October 2026), repository `el-fishing`.
 - The venue for the paper. The description says "chi games cs ed conference"; the draft is written for CHI PLAY with a CS-education strand, and the venue is the person's choice.
 - The fish: which species, how many, how each one behaves, and whether a caught fish is kept or released.
 - The key layout for the arms, the pedals and the scope.
@@ -55,7 +55,17 @@ Terms from fishing and paddling, defined in `GLOSSARY.md` before any string uses
 
 ## Autonomy
 
-The plan is **not** approved in advance: the person asked to review the water design and the mockups before anything is built. In this round the agent may write the brief, the glossary, the notebook, the research report, the paper and the mockups, and must then stop. Where this brief is silent, the agent decides, records the decision in `SECOND-ORDER.md`, and continues within this round. The agent may not loosen a Builder requirement or a boundary test, and may not add a server, an account, analytics or any off-origin request to the game. The design journal may be shared with the person as a private page.
+**Round 2 (17 October 2026): the plan is approved in advance.** The person wrote, word for word:
+
+> name the game "Extremely Lifelike Fishing", take your recomemndation to answer every question, begin the build, dont stop till the mvp is deployed, i give explicit permision to make deploy the website repo with a new chip when the mvp is deployed. start by getting just the first open ocean swells map ready for me to test, don't do the rest of whats in the mockup; just everything necessary to get the first level working and able to catch fish in it
+>
+> the tag for website should be el-fishing
+>
+> as in the website extension sgilson7.github.io/el-fishing
+
+So the agent writes `PLAN.md` from the person's chosen recommendations and builds without stopping at stage 3. The first build is one place, the Open Swell, with everything needed to catch a fish there; the rest of the mockups wait. The gate before publishing becomes `./scripts/check.sh` passing and a hand-worked case checked in the browser. The agent may create the public repository `el-fishing`, publish it to GitHub Pages at `sgilson7.github.io/el-fishing`, run the browser check against that address, and then add the game to the person's website repository (`scholar-site`) with a chip tagged `el-fishing` and deploy the website. Scope: this MVP.
+
+**Round 1 (kept for the record):** The plan is **not** approved in advance: the person asked to review the water design and the mockups before anything is built. In this round the agent may write the brief, the glossary, the notebook, the research report, the paper and the mockups, and must then stop. Where this brief is silent, the agent decides, records the decision in `SECOND-ORDER.md`, and continues within this round. The agent may not loosen a Builder requirement or a boundary test, and may not add a server, an account, analytics or any off-origin request to the game. The design journal may be shared with the person as a private page.
 
 Publishing, granted on 17 October 2026 in the person's words: *"fyi i give you approval to create a public github repo, and a public github pages when the time comes to store and deploy"*. The agent may create a public GitHub repository for the game and publish it to GitHub Pages with `./scripts/publish.sh`, once the plan has been read (stage 3), the game is built, and `./scripts/check.sh` passes, then run the browser check against the live address. "When the time comes" is read as: not in this design round. The repository takes the game's name once the person chooses it (`SECOND-ORDER.md` R1.1).
 
