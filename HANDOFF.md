@@ -4,7 +4,7 @@ Stage 9, written by the agent. `C5 Consolidate in your own words`. A fresh sessi
 
 ## What this is
 
-A 3D browser fishing game: a pedal-drive kayak on simulated water, two arms driven joint by joint to cast, work a bait, set a hook and land a fish on a simulated line, a scope over one eye, and an arcade of five bodies of water. As of 17 October 2026 only the design round is done: brief, glossary, notebook, research, a draft paper and mockups. No game code exists. The design journal is `../journal/fishing-journal.html`; the paper is in `../paper/`.
+A 3D browser fishing game: a pedal-drive kayak on simulated water, two arms driven joint by joint to cast, work a bait, set a hook and land a fish on a simulated line, a scope over one eye, and an arcade of five bodies of water. As of 17 October 2026 only the design round is done: brief, glossary, notebook, research, a draft paper and mockups. A second mockup round the same day (TRIAGE T1) added six far waters with weather, including a volcano's lava lake and Jupiter's cloud tops, exotic and invented fish, and seven earnable costumes. No game code exists. The design journal is `../journal/fishing-journal.html`; the paper is in `../paper/`.
 
 ## Rules that hold it up
 
@@ -32,6 +32,10 @@ The plan is not approved in advance. Do not write `PLAN.md` decisions into code 
 - R1.9 place names, species, working title and mockup strings.
 - R1.14 the draft key layout.
 - R1.15 an anonymised Builder copy before the paper is submitted.
+- R1.17 real or game physics for the volcano and Jupiter.
+- R1.18 how earned costumes are remembered without browser storage.
+- R1.19 round 2's places, fish, creatures, costumes and strings.
+- R1.21 whether two costumes open places or all costumes are looks only.
 
 ## Mistakes so far
 
@@ -43,4 +47,4 @@ Research and writing: a bibliography field written from memory (R1.11) was caugh
 
 ## The next action
 
-Read the person's answers to the water and mockup questions, then write `PLAN.md` from the brief and the water design, and stop for stage 3.
+Read the person's answers to the water and mockup questions (mockups now has eleven), then write `PLAN.md` from the brief and the water design, and stop for stage 3.
