@@ -106,8 +106,20 @@ def run(page, check, engine):
     kinds = sum(len(p["fish"]) for p in PLACES)
     check(page.locator("#log .row").count() == kinds, f"the log lists all {kinds} kinds of fish")
 
-    # the Ledge River: its HUD names it and reports no tide (T16)
+    # the Open Swell's storm, from the weather dropdown (T18): worked by hand from
+    # data/places.json, amplitudes 1.9 1.1 0.75 0.5 0.3 0.18 0.09 0.04 m give
+    # Hs = 4 sqrt(sum a^2 / 2) = 6.79 m, and the 264 m wave's period is 13.0 s
     page.click("#log .btn >> text=" + STRINGS["change.place"])
+    page.wait_for_selector("body[data-screen='title']")
+    page.select_option("#title-card select", label=STRINGS["weather.storm"])
+    page.wait_for_function("() => document.body.dataset.weather === '1'")
+    page.click("#title-card .btn.go")
+    page.wait_for_selector("body[data-screen='fishing']")
+    check("6.8 m, 13 s" in page.inner_text("#place"), "the storm's sea reads 6.8 m, 13 s, as worked by hand")
+    page.keyboard.press("Escape")
+    page.click("#settings .btn >> text=" + STRINGS["change.place"])
+
+    # the Ledge River: its HUD names it and reports no tide (T16)
     page.wait_for_selector("body[data-screen='title']")
     page.click("#title-card .chip >> text=" + STRINGS["place.ledge_river"])
     page.wait_for_function("() => document.body.dataset.place === '1'")
@@ -123,8 +135,10 @@ def run(page, check, engine):
     page.wait_for_function("() => document.body.dataset.boat === '1'")
     page.click("#title-card .btn.go")
     page.wait_for_selector("body[data-screen='fishing']")
-    hold(page, ["ArrowUp"], 180)
+    # Up pushes the throttle lever to full in two seconds and it stays there (T19)
+    hold(page, ["ArrowUp"], 120)
+    hold(page, [], 120)
     speed = float(page.get_attribute("body", "data-speed"))
-    check(speed > 30, f"the speedboat passes 30 km/h in three seconds ({speed} km/h)")
+    check(speed > 30, f"the speedboat passes 30 km/h four seconds after the lever goes forward ({speed} km/h)")
     check(not page.is_visible("#ring"), "the speedboat shows no tension ring")
     check(page.inner_text("#error") == "", "no error message is shown")

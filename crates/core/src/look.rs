@@ -52,6 +52,8 @@ pub struct Look {
     pub colours: BTreeMap<String, String>,
     pub line_glow: i32,
     pub lure_glow: i32,
+    /// How bright a rain streak is, thousandths.
+    pub rain_glow: i32,
     pub grid_cells: i32,
     pub grid_radius_m: i32,
     /// The speed through the water at which the wake is drawn whole.
@@ -87,9 +89,10 @@ impl Look {
     /// The look at a place, from a boat: the place's changes laid over the
     /// common look, and the boat's camera. A change to a name the common look
     /// lacks is an error, so every place sends the shaders the same uniforms.
-    pub fn at(&self, place: &str, boat: &str) -> Result<Look, String> {
+    pub fn at(&self, place: &str, weather: &str, boat: &str) -> Result<Look, String> {
         let mut l = self.clone();
-        if let Some(p) = self.places.get(place) {
+        // the place's changes, then its weather's over them
+        for p in [place, weather].iter().filter_map(|k| self.places.get(*k)) {
             if let Some(sun) = &p.sun {
                 l.sun = sun.clone();
             }
@@ -103,13 +106,13 @@ impl Look {
                         Some(old) if old.len() == v.len() => {
                             table.insert(k.clone(), v.clone());
                         }
-                        _ => return Err(format!("data/look.json: {place} changes {what}.{k}, which the common look does not have in that size.")),
+                        _ => return Err(format!("data/look.json: {place} or {weather} changes {what}.{k}, which the common look does not have in that size.")),
                     }
                 }
             }
             for (k, v) in &p.colours {
                 if !l.colours.contains_key(k) {
-                    return Err(format!("data/look.json: {place} changes the colour {k}, which the common look does not have."));
+                    return Err(format!("data/look.json: {place} or {weather} changes the colour {k}, which the common look does not have."));
                 }
                 l.colours.insert(k.clone(), v.clone());
             }

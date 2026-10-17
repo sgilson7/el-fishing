@@ -55,6 +55,8 @@ Terms from fishing and paddling, defined in `GLOSSARY.md` before any string uses
 
 ## Autonomy
 
+**Round 5: no publishing grant.** The person asked for a storm weather for the Open Swell chosen from a dropdown, a white-water river, mid-ocean waves and a speedboat that handles like one (T18 to T21), and named no publishing.
+
 **Round 4 (17 October 2026): no publishing grant.** The person asked for the river map, a scope that sees through the kayak, a shorter cast, a fish log, one casting arm, a fight cue, a wake, a battery power wind and a speedboat (`TRIAGE.md` T8 to T17), and named no publishing. The agent builds and checks locally and leaves publishing to the person. After reading the round's report, the person wrote, word for word: 
 
 > publish

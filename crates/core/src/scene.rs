@@ -12,6 +12,7 @@ use crate::look::Look;
 use crate::mesh::Shape;
 use crate::render::{Batch, Frame3, Pass, Rgb};
 use crate::river::River;
+use crate::ticks::TICKS_PER_SECOND;
 use crate::world::World;
 
 fn cm(x: i32, y: i32, z: i32) -> V3 {
@@ -52,6 +53,8 @@ pub struct View {
     pub fish_base: usize,
     /// A landed fish held up to be looked at: which, where, facing which way (T11).
     pub shown: Option<(usize, V3, i32)>,
+    /// The eye, for the rain that falls round it.
+    pub eye: V3,
 }
 
 pub fn build(w: &World, look: &Look, view: &View) -> Batch {
@@ -85,7 +88,42 @@ pub fn build(w: &World, look: &Look, view: &View) -> Batch {
     if let Some(r) = &w.sea.river {
         river(&mut b, r, look);
     }
+    if w.place.rain > 0 {
+        rain(&mut b, w, look, view.eye);
+    }
     b
+}
+
+/// Rain (T18): streaks falling at 9 m/s and slanting with the wind, each
+/// fixed in the world and wrapped into a box 40 m across round the eye, so
+/// they neither swim with the camera nor run out. Only seen.
+fn rain(b: &mut Batch, w: &World, look: &Look, eye: V3) {
+    let col = look.colour("rain");
+    let span = 40 * ONE;
+    let tall = 24 * ONE;
+    let fall = 9 * ONE;
+    let wrap = |v: Fx, around: Fx, size: Fx| around + (v - around + size / 2).rem_euclid(size) - size / 2;
+    let t = (w.tick % 6000) as i32 * ONE / TICKS_PER_SECOND as i32;
+    // a streak shows a twentieth of a second of fall
+    let streak = v3(w.sea.wind.x / 20, -fall / 20, w.sea.wind.z / 20);
+    for k in 0..w.place.rain {
+        let x = jitter(k * 3) * (span / 1000);
+        let z = jitter(k * 3 + 1) * (span / 1000);
+        let drop = fx::mul(fall, t) + jitter(k * 3 + 2) * (tall / 1000);
+        let y = wrap(-drop, eye.y, tall);
+        let drift = fx::mul(w.sea.wind.x, t);
+        let drift_z = fx::mul(w.sea.wind.z, t);
+        let at = v3(wrap(x + drift, eye.x, span), y, wrap(z + drift_z, eye.z, span));
+        let end = at.add(streak);
+        b.push(
+            Shape::Cyl as usize,
+            Pass::Glow,
+            at.lerp(end, ONE / 2),
+            &Frame3::between(at, end, ONE / 150),
+            col,
+            look.rain_glow * ONE / 1000,
+        );
+    }
 }
 
 /// The speedboat: a planing hull with a deck, a windscreen, a console, a
@@ -531,6 +569,7 @@ mod tests {
             own_body,
             fish_base: SHAPES,
             shown: None,
+            eye: V3::ZERO,
         };
         let seen = build(&s.world, &s.look, &view(true));
         let scoped = build(&s.world, &s.look, &view(false));

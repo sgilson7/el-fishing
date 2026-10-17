@@ -28,6 +28,7 @@ fn pack(v: Fx, range: Fx) -> u8 {
 
 /// The white water at a point, 0 to ONE: a ring round each rock where the
 /// current piles against it, and the two edges of its wake, fading downstream.
+/// `build` adds the churn of fast water.
 fn white(r: &River, x: Fx, z: Fx) -> Fx {
     let p = v3(x, 0, z);
     let mut most = 0;
@@ -77,7 +78,10 @@ pub fn build(sea: &Sea, range: Fx) -> FlowMap {
             let x = corner.0 + i as i32 * ONE + ONE / 2;
             let z = corner.1 + j as i32 * ONE + ONE / 2;
             let c = sea.current_at(x, z);
-            let w = white(r, x, z);
+            // white water also where the current runs fast: none below 1.8 m/s,
+            // rising to six tenths at 3 m/s (the white-water river, T18)
+            let fast = fx::div(c.flat_len() - ONE * 18 / 10, ONE * 12 / 10).clamp(0, ONE) * 6 / 10;
+            let w = white(r, x, z).max(fast);
             bytes.extend_from_slice(&[pack(c.x, range), pack(c.z, range), (w * 255 / ONE) as u8, 255]);
         }
     }

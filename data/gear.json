@@ -42,8 +42,8 @@
         "thrust_n": 5200,
         "reverse_pct": 25,
         "drag_along": 16,
-        "drag_across": 900,
-        "drag_across_linear": 300,
+        "drag_across": 1400,
+        "drag_across_linear": 600,
         "heave_damp": 500,
         "pitch_damp": 450,
         "roll_damp": 400,
@@ -56,7 +56,16 @@
         "wave_push_pct": 100,
         "steady_pct": 50,
         "pivot_pct": -30,
-        "planing_n": 3600
+        "planing_n": 3600,
+        "outboard": {
+          "steer_max_deg": 30,
+          "steer_deg_s": 90,
+          "centre_deg_s": 120,
+          "throttle_pct_s": 50,
+          "yaw_inertia_kg_m2": 1800,
+          "yaw_damp": 10000,
+          "bank": 200
+        }
       }
     }
   ],

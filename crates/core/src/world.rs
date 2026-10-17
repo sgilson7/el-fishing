@@ -103,6 +103,52 @@ pub struct PlaceSpec {
     pub fish: Vec<FishSpec>,
     #[serde(default)]
     pub scenery: ScenerySpec,
+    /// The key of the name of the place's own weather, the first in the
+    /// weather choice; a variant replaces it with its own (T18).
+    pub weather: String,
+    /// Rain drops drawn round the eye; 0 for none. Only seen.
+    #[serde(default)]
+    pub rain: i32,
+    /// Other weathers for the same place: another sea, rain and clouds.
+    #[serde(default)]
+    pub variants: Vec<VariantSpec>,
+}
+
+/// A weather for a place (T18): the same place and fish under another sea.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VariantSpec {
+    #[serde(default, rename = "_note")]
+    pub note: String,
+    pub name: String,
+    pub sea: SeaSpec,
+    #[serde(default)]
+    pub rain: i32,
+    #[serde(default)]
+    pub clouds: Option<Vec<[i32; 4]>>,
+}
+
+impl PlaceSpec {
+    /// How many weathers the place offers, its own included.
+    pub fn weathers(&self) -> usize {
+        1 + self.variants.len()
+    }
+
+    /// The place under weather `w`: 0 is its own; a variant swaps in its sea,
+    /// its rain and its clouds.
+    pub fn in_weather(&self, w: usize) -> PlaceSpec {
+        let mut p = self.clone();
+        if let Some(v) = w.checked_sub(1).and_then(|i| self.variants.get(i)) {
+            p.sea = v.sea.clone();
+            p.weather = v.name.clone();
+            p.rain = v.rain;
+            if let Some(c) = &v.clouds {
+                p.scenery.clouds = c.clone();
+            }
+        }
+        p.variants.clear();
+        p
+    }
 }
 
 /// What a place shows far off, placed by fixed numbers: sea stacks (x, z,
@@ -253,6 +299,8 @@ impl World {
             return;
         }
         self.tick += 1;
+        // in a boat that is not fished from, Space snaps its throttle to neutral
+        let neutral = !self.fishing() && keys & bits::WIND != 0;
         // from a boat that is not fished from, the arm and reel keys do nothing
         let keys = if self.fishing() {
             keys
@@ -274,6 +322,7 @@ impl World {
         let hull_input = HullInput {
             pedal: both(PEDAL, BACK_PEDAL),
             drift: both(DRIFT_RIGHT, DRIFT_LEFT),
+            neutral,
         };
         // the motor: jerks of `on_ms` with rests of `off_ms` between, while the
         // battery lasts; a fish on the line is fair game (T15)
@@ -612,14 +661,16 @@ pub mod tests {
     fn the_speedboat_planes_past_fifteen_metres_a_second() {
         // 5200 N against 16 N per (m/s)² gives √(5200/16) = 18.0 m/s with the
         // whole hull in the water. Planing, part of the hull is out and drags
-        // less, so it runs faster, but not past √(5200/16 × 16/8) = 25.5 with
-        // half the sixteen probes wet
+        // less, so it runs faster: with a quarter of the probes wet, no faster
+        // than √(5200/16 × 4) = 36 m/s. Up holds the throttle lever forward:
+        // full after two seconds at 50% a second
         let mut w = world_at(0, 1, 1);
         for _ in 0..900 {
             w.step(bits::PEDAL);
         }
+        assert_eq!(w.hull.throttle, ONE);
         let v = w.hull.speed();
-        assert!(v > 15 * ONE && v < 51 * ONE / 2, "speed {v}");
+        assert!(v > 15 * ONE && v < 36 * ONE, "speed {v}");
     }
 
     #[test]

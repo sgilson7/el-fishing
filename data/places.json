@@ -206,7 +206,131 @@
           18
         ]
       ]
-    }
+    },
+    "weather": "weather.fair",
+    "variants": [
+      {
+        "_note": "A mid-ocean storm in daylight (T18): eight components giving a sea of about 7 m significant height, the tallest 264 m long at about 13 s, under a 26-knot wind with rain. Mid-ocean storm seas run 6 to 9 m (Beaufort 7 to 9); the wind is held under what the kayak can pedal against.",
+        "name": "weather.storm",
+        "sea": {
+          "waves": [
+            {
+              "toward_deg": 200,
+              "length_cm": 26400,
+              "amp_mm": 1900,
+              "steep_pct": 70
+            },
+            {
+              "toward_deg": 215,
+              "length_cm": 16000,
+              "amp_mm": 1100,
+              "steep_pct": 75
+            },
+            {
+              "toward_deg": 185,
+              "length_cm": 9500,
+              "amp_mm": 750,
+              "steep_pct": 80
+            },
+            {
+              "toward_deg": 230,
+              "length_cm": 5500,
+              "amp_mm": 500,
+              "steep_pct": 80
+            },
+            {
+              "toward_deg": 170,
+              "length_cm": 3000,
+              "amp_mm": 300,
+              "steep_pct": 75
+            },
+            {
+              "toward_deg": 245,
+              "length_cm": 1600,
+              "amp_mm": 180,
+              "steep_pct": 70
+            },
+            {
+              "toward_deg": 195,
+              "length_cm": 800,
+              "amp_mm": 90,
+              "steep_pct": 60
+            },
+            {
+              "toward_deg": 260,
+              "length_cm": 400,
+              "amp_mm": 40,
+              "steep_pct": 50
+            }
+          ],
+          "tide_amp_mm": 600,
+          "tide_period_minutes": 20,
+          "current_toward_deg": 70,
+          "current_mm_s": 400,
+          "wind_toward_deg": 210,
+          "wind_mm_s": 13500,
+          "density_kg_m3": 1025,
+          "depth_cm": 1800
+        },
+        "rain": 900,
+        "clouds": [
+          [
+            -400,
+            70,
+            -500,
+            40
+          ],
+          [
+            -120,
+            80,
+            -620,
+            46
+          ],
+          [
+            260,
+            65,
+            -450,
+            38
+          ],
+          [
+            560,
+            90,
+            -300,
+            44
+          ],
+          [
+            -640,
+            75,
+            160,
+            42
+          ],
+          [
+            120,
+            85,
+            560,
+            48
+          ],
+          [
+            700,
+            70,
+            260,
+            36
+          ],
+          [
+            -300,
+            80,
+            500,
+            40
+          ],
+          [
+            400,
+            75,
+            -800,
+            50
+          ]
+        ]
+      }
+    ]
   },
   {
     "_note": "Ledge River: a loop 120 m round the centreline and 40 m wide, so the current never ends (T16). Its current is current_mm_s mid-channel, slowing to nothing at the banks, and runs round the loop whatever current_toward_deg says. Fresh water. Rocks are hand-placed.",
@@ -561,6 +685,408 @@
           22
         ]
       ]
-    }
+    },
+    "weather": "weather.midday",
+    "variants": [
+      {
+        "_note": "Raging white water (T18): the same loop running 2.6 m/s (5 kn) mid-channel, faster than the kayak can pedal, with 26 more boulders and steep standing waves. The eddies behind the rocks are the only slack water.",
+        "name": "weather.whitewater",
+        "sea": {
+          "waves": [
+            {
+              "toward_deg": 180,
+              "length_cm": 400,
+              "amp_mm": 400,
+              "steep_pct": 85
+            },
+            {
+              "toward_deg": 165,
+              "length_cm": 300,
+              "amp_mm": 320,
+              "steep_pct": 85
+            },
+            {
+              "toward_deg": 195,
+              "length_cm": 220,
+              "amp_mm": 260,
+              "steep_pct": 85
+            },
+            {
+              "toward_deg": 150,
+              "length_cm": 160,
+              "amp_mm": 190,
+              "steep_pct": 80
+            },
+            {
+              "toward_deg": 210,
+              "length_cm": 110,
+              "amp_mm": 130,
+              "steep_pct": 80
+            },
+            {
+              "toward_deg": 175,
+              "length_cm": 80,
+              "amp_mm": 80,
+              "steep_pct": 80
+            },
+            {
+              "toward_deg": 190,
+              "length_cm": 50,
+              "amp_mm": 50,
+              "steep_pct": 80
+            },
+            {
+              "toward_deg": 205,
+              "length_cm": 35,
+              "amp_mm": 25,
+              "steep_pct": 80
+            }
+          ],
+          "tide_amp_mm": 0,
+          "tide_period_minutes": 20,
+          "current_toward_deg": 180,
+          "current_mm_s": 2600,
+          "wind_toward_deg": 180,
+          "wind_mm_s": 1500,
+          "density_kg_m3": 1000,
+          "depth_cm": 350,
+          "river": {
+            "radius_cm": 12000,
+            "width_cm": 4000,
+            "bank_depth_cm": 60,
+            "land_cm": 150,
+            "wake_radii": 8,
+            "eddy_pct": 50,
+            "rocks": [
+              {
+                "along_deg": 352,
+                "across_cm": -600,
+                "r_cm": 160,
+                "top_cm": 90
+              },
+              {
+                "along_deg": 345,
+                "across_cm": 700,
+                "r_cm": 120,
+                "top_cm": 60
+              },
+              {
+                "along_deg": 338,
+                "across_cm": -1200,
+                "r_cm": 90,
+                "top_cm": 40
+              },
+              {
+                "along_deg": 330,
+                "across_cm": 200,
+                "r_cm": 200,
+                "top_cm": 110
+              },
+              {
+                "along_deg": 322,
+                "across_cm": 1300,
+                "r_cm": 110,
+                "top_cm": -30
+              },
+              {
+                "along_deg": 314,
+                "across_cm": -300,
+                "r_cm": 140,
+                "top_cm": 70
+              },
+              {
+                "along_deg": 305,
+                "across_cm": 900,
+                "r_cm": 180,
+                "top_cm": 100
+              },
+              {
+                "along_deg": 296,
+                "across_cm": -1000,
+                "r_cm": 100,
+                "top_cm": 50
+              },
+              {
+                "along_deg": 286,
+                "across_cm": 0,
+                "r_cm": 130,
+                "top_cm": -40
+              },
+              {
+                "along_deg": 276,
+                "across_cm": -1400,
+                "r_cm": 150,
+                "top_cm": 80
+              },
+              {
+                "along_deg": 266,
+                "across_cm": 600,
+                "r_cm": 110,
+                "top_cm": 60
+              },
+              {
+                "along_deg": 255,
+                "across_cm": -500,
+                "r_cm": 190,
+                "top_cm": 120
+              },
+              {
+                "along_deg": 244,
+                "across_cm": 1200,
+                "r_cm": 90,
+                "top_cm": 30
+              },
+              {
+                "along_deg": 232,
+                "across_cm": -900,
+                "r_cm": 140,
+                "top_cm": 70
+              },
+              {
+                "along_deg": 220,
+                "across_cm": 300,
+                "r_cm": 160,
+                "top_cm": 90
+              },
+              {
+                "along_deg": 206,
+                "across_cm": -200,
+                "r_cm": 110,
+                "top_cm": -30
+              },
+              {
+                "along_deg": 192,
+                "across_cm": 1000,
+                "r_cm": 170,
+                "top_cm": 100
+              },
+              {
+                "along_deg": 178,
+                "across_cm": -1300,
+                "r_cm": 120,
+                "top_cm": 60
+              },
+              {
+                "along_deg": 162,
+                "across_cm": 500,
+                "r_cm": 150,
+                "top_cm": 80
+              },
+              {
+                "along_deg": 146,
+                "across_cm": -700,
+                "r_cm": 100,
+                "top_cm": 40
+              },
+              {
+                "along_deg": 130,
+                "across_cm": 1400,
+                "r_cm": 130,
+                "top_cm": 70
+              },
+              {
+                "along_deg": 114,
+                "across_cm": -100,
+                "r_cm": 180,
+                "top_cm": 110
+              },
+              {
+                "along_deg": 98,
+                "across_cm": -1100,
+                "r_cm": 110,
+                "top_cm": 50
+              },
+              {
+                "along_deg": 82,
+                "across_cm": 800,
+                "r_cm": 150,
+                "top_cm": 90
+              },
+              {
+                "along_deg": 66,
+                "across_cm": -500,
+                "r_cm": 90,
+                "top_cm": -30
+              },
+              {
+                "along_deg": 50,
+                "across_cm": 1200,
+                "r_cm": 160,
+                "top_cm": 80
+              },
+              {
+                "along_deg": 34,
+                "across_cm": -1300,
+                "r_cm": 120,
+                "top_cm": 60
+              },
+              {
+                "along_deg": 20,
+                "across_cm": 300,
+                "r_cm": 140,
+                "top_cm": 70
+              },
+              {
+                "along_deg": 7,
+                "across_cm": -1500,
+                "r_cm": 150,
+                "top_cm": 60
+              },
+              {
+                "along_deg": 20,
+                "across_cm": -800,
+                "r_cm": 220,
+                "top_cm": 120
+              },
+              {
+                "along_deg": 34,
+                "across_cm": -200,
+                "r_cm": 180,
+                "top_cm": -20
+              },
+              {
+                "along_deg": 48,
+                "across_cm": 500,
+                "r_cm": 260,
+                "top_cm": 90
+              },
+              {
+                "along_deg": 61,
+                "across_cm": 1100,
+                "r_cm": 130,
+                "top_cm": 150
+              },
+              {
+                "along_deg": 75,
+                "across_cm": 1600,
+                "r_cm": 150,
+                "top_cm": 60
+              },
+              {
+                "along_deg": 89,
+                "across_cm": -1500,
+                "r_cm": 220,
+                "top_cm": 120
+              },
+              {
+                "along_deg": 102,
+                "across_cm": -800,
+                "r_cm": 180,
+                "top_cm": -20
+              },
+              {
+                "along_deg": 116,
+                "across_cm": -200,
+                "r_cm": 260,
+                "top_cm": 90
+              },
+              {
+                "along_deg": 130,
+                "across_cm": 500,
+                "r_cm": 130,
+                "top_cm": 150
+              },
+              {
+                "along_deg": 144,
+                "across_cm": 1100,
+                "r_cm": 150,
+                "top_cm": 60
+              },
+              {
+                "along_deg": 157,
+                "across_cm": 1600,
+                "r_cm": 220,
+                "top_cm": 120
+              },
+              {
+                "along_deg": 171,
+                "across_cm": -1500,
+                "r_cm": 180,
+                "top_cm": -20
+              },
+              {
+                "along_deg": 185,
+                "across_cm": -800,
+                "r_cm": 260,
+                "top_cm": 90
+              },
+              {
+                "along_deg": 198,
+                "across_cm": -200,
+                "r_cm": 130,
+                "top_cm": 150
+              },
+              {
+                "along_deg": 212,
+                "across_cm": 500,
+                "r_cm": 150,
+                "top_cm": 60
+              },
+              {
+                "along_deg": 226,
+                "across_cm": 1100,
+                "r_cm": 220,
+                "top_cm": 120
+              },
+              {
+                "along_deg": 239,
+                "across_cm": 1600,
+                "r_cm": 180,
+                "top_cm": -20
+              },
+              {
+                "along_deg": 253,
+                "across_cm": -1500,
+                "r_cm": 260,
+                "top_cm": 90
+              },
+              {
+                "along_deg": 267,
+                "across_cm": -800,
+                "r_cm": 130,
+                "top_cm": 150
+              },
+              {
+                "along_deg": 281,
+                "across_cm": -200,
+                "r_cm": 150,
+                "top_cm": 60
+              },
+              {
+                "along_deg": 294,
+                "across_cm": 500,
+                "r_cm": 220,
+                "top_cm": 120
+              },
+              {
+                "along_deg": 308,
+                "across_cm": 1100,
+                "r_cm": 180,
+                "top_cm": -20
+              },
+              {
+                "along_deg": 322,
+                "across_cm": 1600,
+                "r_cm": 260,
+                "top_cm": 90
+              },
+              {
+                "along_deg": 335,
+                "across_cm": -1500,
+                "r_cm": 130,
+                "top_cm": 150
+              },
+              {
+                "along_deg": 349,
+                "across_cm": -800,
+                "r_cm": 150,
+                "top_cm": 60
+              }
+            ]
+          }
+        },
+        "rain": 0
+      }
+    ]
   }
 ]

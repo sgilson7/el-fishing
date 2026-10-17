@@ -57,6 +57,21 @@ export function makeUi(el, act) {
       row.append(make("span", "", label), opts);
       box.append(row);
     }
+    // a dropdown: the same kind of choice as chips, for a place's weathers (T18)
+    for (const [label, choice] of p.selects || []) {
+      const row = make("div", "row");
+      const pick = make("select", "pick");
+      pick.setAttribute("aria-label", label);
+      for (const o of choice.options) {
+        const opt = make("option", "", o.label);
+        opt.value = o.value;
+        opt.selected = o.on;
+        pick.append(opt);
+      }
+      pick.addEventListener("change", () => act(choice.name, pick.value));
+      row.append(make("span", "", label), pick);
+      box.append(row);
+    }
     if (p.actions) {
       const row = make("div", "actions");
       for (const a of p.actions) row.append(button(a));

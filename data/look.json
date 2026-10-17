@@ -241,7 +241,8 @@
     "boulder": "#5c5e60",
     "boat_hull": "#f2f2ee",
     "boat_deck": "#d8d2c4",
-    "boat_trim": "#c8402e"
+    "boat_trim": "#c8402e",
+    "rain": "#b8c6cf"
   },
   "line_glow": 700,
   "lure_glow": 900,
@@ -311,6 +312,124 @@
           "#c4d0d4"
         ]
       }
+    },
+    "weather.storm": {
+      "sun": {
+        "toward_deg": 200,
+        "elevation_deg": 40
+      },
+      "water": {
+        "uDeep": [
+          "#16262e"
+        ],
+        "uShallow": [
+          "#2f4f5a"
+        ],
+        "uCrest": [
+          "#7fa8a8"
+        ],
+        "uSkyTop": [
+          "#4e5a62"
+        ],
+        "uSkyHor": [
+          "#8b979d"
+        ],
+        "uSunCol": [
+          "#5a6064"
+        ],
+        "uFogColour": [
+          "#7d878c"
+        ],
+        "uFog": [
+          30000,
+          420000
+        ],
+        "uFoam": [
+          300,
+          800,
+          1700,
+          2300
+        ],
+        "uFoamEdge": [
+          300,
+          700,
+          950,
+          550
+        ],
+        "uGlint": [
+          380000,
+          600,
+          40000,
+          30
+        ],
+        "uCrestLight": [
+          400,
+          1400,
+          200,
+          600
+        ]
+      },
+      "shapes": {
+        "uSkyLight": [
+          "#8a949a"
+        ],
+        "uSun": [
+          "#8c9296"
+        ],
+        "uFogColour": [
+          "#7d878c"
+        ],
+        "uFog": [
+          30000,
+          420000
+        ],
+        "uDeep": [
+          "#16262e"
+        ]
+      },
+      "sky": {
+        "uTop": [
+          "#4e5a62"
+        ],
+        "uHor": [
+          "#8b979d"
+        ],
+        "uBelow": [
+          "#7d878c"
+        ],
+        "uSunCol": [
+          "#2a2e30"
+        ]
+      },
+      "colours": {
+        "cloud": "#59636a",
+        "stack": "#5d5850"
+      }
+    },
+    "weather.whitewater": {
+      "water": {
+        "uFoam": [
+          250,
+          700,
+          1800,
+          2300
+        ],
+        "uFoamEdge": [
+          280,
+          650,
+          950,
+          550
+        ],
+        "uFlowK": [
+          3000,
+          1100,
+          2200,
+          2000
+        ],
+        "uShallow": [
+          "#4f9a8a"
+        ]
+      }
     }
   },
   "boat_cameras": {
@@ -330,5 +449,6 @@
       "scope_max_zoom": 16,
       "scope_start_zoom": 10
     }
-  }
+  },
+  "rain_glow": 350
 }

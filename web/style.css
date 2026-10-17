@@ -101,3 +101,5 @@ body[data-screen="settings"] #settings { z-index: 2; }
 #battery[data-state="running"] .bar i { background: var(--gold); animation: pulse 0.12s linear infinite alternate; }
 #battery .battery-status { font: 700 12px var(--body); color: var(--muted); }
 @keyframes pulse { from { opacity: 1; } to { opacity: 0.45; } }
+.pick { font: 800 12px var(--body); border-radius: 999px; padding: 3px 10px; background: rgba(255, 207, 77, 0.25); color: var(--gold); border: 0; cursor: pointer; }
+.pick option { color: var(--night); }

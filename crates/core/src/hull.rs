@@ -58,6 +58,31 @@ pub struct HullSpec {
     /// growing as the square of the speed; 0 for a kayak.
     #[serde(default)]
     pub planing_n: i32,
+    /// A steerable outboard on the transom, in place of the pedals and the
+    /// drift (T19). With one, the pedal keys move a throttle lever that stays
+    /// where it is left, and the drift keys turn the outboard.
+    #[serde(default)]
+    pub outboard: Option<OutboardSpec>,
+}
+
+/// An outboard: its thrust turns with it, so it pushes the stern sideways
+/// and the hull turns about its middle at a rate the water damps.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OutboardSpec {
+    /// The farthest the outboard turns each way, and how fast it turns and recentres.
+    pub steer_max_deg: i32,
+    pub steer_deg_s: i32,
+    pub centre_deg_s: i32,
+    /// How fast the throttle lever moves, percent of full a second.
+    pub throttle_pct_s: i32,
+    /// The hull's resistance to turning: its inertia about the vertical, and
+    /// the water's damping of the turn, N·m per rad/s.
+    pub yaw_inertia_kg_m2: i32,
+    pub yaw_damp: i32,
+    /// A planing hull leans into its turn: roll torque, N·m per (rad/s × m/s)
+    /// of turn rate times speed through the water.
+    pub bank: i32,
 }
 
 fn bow() -> i32 {
@@ -69,6 +94,8 @@ fn bow() -> i32 {
 pub struct HullInput {
     pub pedal: i32,
     pub drift: i32,
+    /// Snap the throttle to neutral (an outboard only).
+    pub neutral: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -92,6 +119,11 @@ pub struct Hull {
     /// one unit and is lost, so a slow drift would stall short (R2.3).
     fine_vel: [i64; 2],
     fine_pos: [i64; 2],
+    /// An outboard's throttle lever, -reverse to ONE, its angle in turns
+    /// (positive turns the bow right) and the hull's turn rate, rad/s.
+    pub throttle: Fx,
+    pub steer: i32,
+    pub yaw_rate: Fx,
 }
 
 const FINE: u32 = 16;
@@ -123,6 +155,9 @@ impl Hull {
             steady: 1,
             fine_vel: [0, 0],
             fine_pos: [(at.x as i64) << FINE, (at.z as i64) << FINE],
+            throttle: 0,
+            steer: 0,
+            yaw_rate: 0,
         }
     }
 
@@ -194,6 +229,9 @@ impl Hull {
         let lever = s.weight_above_keel_cm * ONE / 100;
         let max_roll = s.max_roll_deg * TAU / 360;
         let probes = self.probes();
+        if let Some(o) = &s.outboard {
+            self.helm(o, &s, input);
+        }
         for _ in 0..SUBSTEPS {
             // summed in 64 bits: a speedboat's sixteen probes together pass
             // the 32 767 N a Q16 value holds
@@ -236,7 +274,20 @@ impl Hull {
             let pitch_t = pitch_t + fx::mul(plane, self.length() / 10) as i64;
             let ap =
                 div64(pitch_t, s.pitch_inertia_kg_m2 * ONE) - fx::mul(damp(s.pitch_damp), self.pitch_rate);
-            let ar = div64(roll_t + tip as i64, s.roll_inertia_kg_m2 * ONE)
+            // leaning into a turn: a right turn puts the right side down
+            let lean = match &s.outboard {
+                Some(o) => {
+                    let ahead = self
+                        .vel
+                        .sub(sea.current_at(self.pos.x, self.pos.z))
+                        .flat()
+                        .dot(self.forward()) as Fx;
+                    -(o.bank as i64 * fx::mul(self.yaw_rate, ahead.max(0)) as i64 * wet as i64
+                        / PROBES as i64)
+                }
+                None => 0,
+            };
+            let ar = div64(roll_t + tip as i64 + lean, s.roll_inertia_kg_m2 * ONE)
                 - fx::mul(damp(s.roll_damp), self.roll_rate);
             self.pitch_rate += fx::mul(ap, h);
             self.roll_rate += fx::mul(ar, h);
@@ -257,6 +308,8 @@ impl Hull {
             // the pedals' fins or the propeller push only while in the water
             let thrust = if wet == 0 {
                 0
+            } else if s.outboard.is_some() {
+                fx::mul(s.thrust_n * ONE, self.throttle)
             } else {
                 match input.pedal.signum() {
                     1 => s.thrust_n * ONE,
@@ -264,15 +317,40 @@ impl Hull {
                     _ => 0,
                 }
             };
+            // an outboard turned by δ pushes along cos δ and the stern sideways
+            // by sin δ; that sideways push turns the hull about its middle
+            let (push_along, push_side) = if s.outboard.is_some() {
+                (
+                    fx::mul(thrust, fx::cos(self.steer)),
+                    fx::mul(thrust, fx::sin(self.steer)),
+                )
+            } else {
+                (thrust, 0)
+            };
+            if let Some(o) = &s.outboard {
+                let torque = fx::mul(push_side, self.length() / 2);
+                let damp_t = fx::mul(o.yaw_damp * ONE, self.yaw_rate);
+                let alpha = fx::div(torque - damp_t, o.yaw_inertia_kg_m2 * ONE);
+                self.yaw_rate += fx::mul(alpha, h);
+                self.heading = (self.heading + rad_to_turns(fx::mul(self.yaw_rate, h))).rem_euclid(fx::TURN);
+            }
             // the water drags only on a hull in it
-            let along = thrust - fx::mul(fx::mul(s.drag_along * ONE, fx::mul(u, u.abs())), touch);
-            let across = fx::mul(
-                -fx::mul(s.drag_across * ONE, fx::mul(w, w.abs())) - s.drag_across_linear * w,
-                touch,
-            );
-            let mut f = fwd.scale(along).add(right.scale(across));
+            // in 64 bits: a hull sliding sideways at speed meets drag far past
+            // what a Q16 value holds, and a wrapped sum pushed it on (T19)
+            let wide = |v: Fx| v as i64;
+            let q = |k: i32, v: Fx| (k as i64 * wide(v) * wide(v).abs()) >> 16;
+            let clamp = |v: i64| v.clamp(-(i32::MAX as i64) / 2, i32::MAX as i64 / 2) as Fx;
+            let along = clamp(wide(push_along) - ((q(s.drag_along, u) * wide(touch)) >> 16));
+            let across =
+                clamp(((-q(s.drag_across, w) - s.drag_across_linear as i64 * wide(w)) * wide(touch)) >> 16);
+            // the outboard's sideways push acts at the stern, toward the left
+            // when it turns the bow right
+            let mut f = fwd
+                .scale(along)
+                .add(right.scale(across.saturating_sub(push_side)));
             if wet > 0 {
-                let push = fx::mul(weight, s.wave_push_pct * ONE / 100) / wet;
+                // the waves' slope, felt only through the probes in the water
+                let push = fx::mul(fx::mul(weight, s.wave_push_pct * ONE / 100), touch) / wet;
                 f = f.add(v3(-fx::mul(push, sx), 0, -fx::mul(push, sz)));
             }
             let air = sea.wind.sub(self.vel).flat();
@@ -292,8 +370,30 @@ impl Hull {
             self.pos.y += fx::mul(self.vel.y, h);
             self.keep_off_banks(sea);
         }
-        if input.drift != 0 {
+        if input.drift != 0 && s.outboard.is_none() {
             self.drift(input.drift.signum());
+        }
+    }
+
+    /// The helm, once a tick: the throttle lever moves while a pedal key is
+    /// held and stays where it is left; the outboard turns while a drift key
+    /// is held and swings back to the middle when it is let go.
+    fn helm(&mut self, o: &OutboardSpec, s: &HullSpec, input: HullInput) {
+        let per = TICKS_PER_SECOND as i32;
+        let reverse = -ONE * s.reverse_pct / 100;
+        if input.neutral {
+            self.throttle = 0;
+        } else if input.pedal != 0 {
+            let step = ONE * o.throttle_pct_s / 100 / per;
+            self.throttle = (self.throttle + input.pedal.signum() * step).clamp(reverse, ONE);
+        }
+        let most = o.steer_max_deg * fx::TURN / 360;
+        if input.drift != 0 {
+            let step = o.steer_deg_s * fx::TURN / 360 / per;
+            self.steer = (self.steer + input.drift.signum() * step).clamp(-most, most);
+        } else {
+            let step = o.centre_deg_s * fx::TURN / 360 / per;
+            self.steer -= self.steer.signum() * step.min(self.steer.abs());
         }
     }
 
@@ -319,6 +419,12 @@ impl Hull {
             if into < 0 {
                 self.vel = self.vel.sub(n.scale(into));
             }
+            // scraping along a bank or a rock costs speed: a tenth of what is
+            // left each substep in contact
+            let y = self.vel.y;
+            self.vel = self.vel.scale(ONE * 9 / 10);
+            self.vel.y = y;
+            self.yaw_rate = self.yaw_rate * 9 / 10;
             self.fine_pos = [(self.pos.x as i64) << FINE, (self.pos.z as i64) << FINE];
             self.fine_vel = [(self.vel.x as i64) << FINE, (self.vel.z as i64) << FINE];
         }
@@ -367,7 +473,61 @@ mod tests {
             steady_pct: 50,
             pivot_pct: 100,
             planing_n: 0,
+            outboard: None,
         }
+    }
+
+    fn speedboat() -> HullSpec {
+        let gear: serde_json::Value = serde_json::from_str(include_str!("../../../data/gear.json")).unwrap();
+        serde_json::from_value(gear["boats"][1]["hull"].clone()).unwrap()
+    }
+
+    #[test]
+    fn the_throttle_lever_stays_where_it_is_left_and_the_outboard_recentres() {
+        let sea = still_sea();
+        let mut h = Hull::new(speedboat(), V3::ZERO, 0);
+        let input = |pedal: i32, drift: i32, neutral: bool| HullInput {
+            pedal,
+            drift,
+            neutral,
+        };
+        // 50% a second: one second of Up is half throttle, and it stays there
+        run(&mut h, &sea, input(1, 0, false), 60);
+        assert!((h.throttle - ONE / 2).abs() < ONE / 100, "{}", h.throttle);
+        run(&mut h, &sea, input(0, 0, false), 120);
+        assert!((h.throttle - ONE / 2).abs() < ONE / 100, "{}", h.throttle);
+        run(&mut h, &sea, input(0, 0, true), 1);
+        assert_eq!(h.throttle, 0);
+        // 90 degrees a second for a fifth of a second is 18 degrees right;
+        // let go, it swings back at 120 a second, so a sixth of a second centres it
+        run(&mut h, &sea, input(0, 1, false), 12);
+        assert!((h.steer * 360 / fx::TURN - 18).abs() <= 1, "{}", h.steer);
+        run(&mut h, &sea, input(0, 0, false), 10);
+        assert_eq!(h.steer, 0);
+    }
+
+    #[test]
+    fn full_lock_at_full_throttle_turns_at_the_rate_the_water_allows() {
+        // the outboard at 30 degrees pushes the stern sideways with
+        // 5200 × sin 30 = 2600 N, 2.75 m behind the middle: 7150 N·m, against
+        // 10 000 N·m per rad/s of damping, so the turn settles at 0.715 rad/s
+        let mut sea = still_sea();
+        sea.tide_on = false;
+        let mut h = Hull::new(speedboat(), V3::ZERO, 0);
+        h.throttle = ONE;
+        run(&mut h, &sea, HullInput::default(), 600);
+        run(
+            &mut h,
+            &sea,
+            HullInput {
+                pedal: 0,
+                drift: 1,
+                neutral: false,
+            },
+            300,
+        );
+        let want = ONE * 715 / 1000;
+        assert!((h.yaw_rate - want).abs() < want / 10, "turn rate {}", h.yaw_rate);
     }
 
     #[test]
@@ -437,7 +597,16 @@ mod tests {
         // 120 N = 50 v² gives v = 1.549 m/s = 101 515 in Q16
         let sea = still_sea();
         let mut h = Hull::new(spec(), V3::ZERO, 0);
-        run(&mut h, &sea, HullInput { pedal: 1, drift: 0 }, 30 * 60);
+        run(
+            &mut h,
+            &sea,
+            HullInput {
+                pedal: 1,
+                drift: 0,
+                neutral: false,
+            },
+            30 * 60,
+        );
         let v = h.speed();
         assert!((v - 101_515).abs() < 1_015, "speed {v}");
         assert!(
@@ -453,7 +622,16 @@ mod tests {
         let mut h = Hull::new(spec(), V3::ZERO, 0);
         run(&mut h, &sea, HullInput::default(), 120);
         let bow = h.bow();
-        run(&mut h, &sea, HullInput { pedal: 0, drift: 1 }, 60);
+        run(
+            &mut h,
+            &sea,
+            HullInput {
+                pedal: 0,
+                drift: 1,
+                neutral: false,
+            },
+            60,
+        );
         // 30 degrees is 30/360 of a turn: 5461 units, within a degree (182)
         assert!((h.heading - 5_461).abs() < 182, "heading {}", h.heading);
         let moved = h.bow().sub(bow).flat_len();

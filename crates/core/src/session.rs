@@ -85,6 +85,8 @@ pub struct Session {
     /// Which place and which boat the world is.
     pub place: usize,
     pub boat: usize,
+    /// Which of the place's weathers: 0 its own (T18).
+    pub weather: usize,
     /// Counts up each time the world is rebuilt for another place or boat,
     /// so the page knows to send the GPU the new constants and flow map.
     pub generation: u32,
@@ -153,24 +155,29 @@ impl Session {
         }
         // the shaders are compiled once for one wave count
         let waves = places[0].sea.waves.len();
-        let mut names: Vec<&str> = Vec::new();
+        let mut names: Vec<String> = Vec::new();
         for p in &places {
-            if p.sea.waves.len() != waves {
-                return Err(format!(
-                    "data/places.json: {} has {} waves; every place needs {waves}.",
-                    p.name,
-                    p.sea.waves.len()
-                ));
+            for w in 0..p.weathers() {
+                let pw = p.in_weather(w);
+                if pw.sea.waves.len() != waves {
+                    return Err(format!(
+                        "data/places.json: {} in {} has {} waves; every place needs {waves}.",
+                        p.name,
+                        pw.weather,
+                        pw.sea.waves.len()
+                    ));
+                }
+                names.push(pw.weather.clone());
+                for b in &gear.boats {
+                    base_look.at(&p.name, &pw.weather, &b.name)?;
+                }
             }
-            names.push(&p.name);
-            names.extend(p.fish.iter().map(|f| f.name.as_str()));
-            for b in &gear.boats {
-                base_look.at(&p.name, &b.name)?;
-            }
+            names.push(p.name.clone());
+            names.extend(p.fish.iter().map(|f| f.name.clone()));
         }
-        names.extend(gear.boats.iter().map(|b| b.name.as_str()));
+        names.extend(gear.boats.iter().map(|b| b.name.clone()));
         for n in names {
-            if !strings.has(n) {
+            if !strings.has(&n) {
                 return Err(format!("The strings file has no \"{n}\"."));
             }
         }
@@ -183,7 +190,7 @@ impl Session {
             }
         }
         let world = World::new(gear.clone(), places[0].clone(), 0, seed);
-        let look = base_look.at(&places[0].name, &gear.boats[0].name)?;
+        let look = base_look.at(&places[0].name, &places[0].weather, &gear.boats[0].name)?;
         let camera = Camera {
             eye: v3(0, 3 * ONE, 6 * ONE),
             at: V3::ZERO,
@@ -199,6 +206,7 @@ impl Session {
             seed,
             place: 0,
             boat: 0,
+            weather: 0,
             generation: 0,
             fish_base,
             log: Vec::new(),
@@ -231,10 +239,10 @@ impl Session {
 
     /// Builds the world afresh at the chosen place in the chosen boat.
     fn enter(&mut self) {
-        let place = self.places[self.place].clone();
+        let place = self.places[self.place].in_weather(self.weather);
         let boat = self.gear.boats[self.boat].name.clone();
-        // checked for every place and boat when the session was made
-        if let Ok(l) = self.base_look.at(&place.name, &boat) {
+        // checked for every place, weather and boat when the session was made
+        if let Ok(l) = self.base_look.at(&place.name, &place.weather, &boat) {
             self.look = l;
         }
         let seed = self.seed.wrapping_add(self.generation as u64 + 1);
@@ -368,6 +376,11 @@ impl Session {
             ("screen.show", other) => return Err(format!("There is no screen \"{other}\".")),
             ("place.choose", v) => {
                 self.place = Session::pick(v, self.places.len())?;
+                self.weather = 0;
+                self.enter();
+            }
+            ("weather.choose", v) => {
+                self.weather = Session::pick(v, self.places[self.place].weathers())?;
                 self.enter();
             }
             ("boat.choose", v) => {
@@ -466,7 +479,7 @@ impl Session {
         let target_eye = h
             .pos
             .flat()
-            .add(v3(0, h.pos.y.max(-ONE * 2), 0))
+            .add(v3(0, h.pos.y.max(-ONE * 8), 0))
             .sub(fwd.scale(cm(c.behind_cm)))
             .add(right.scale(cm(c.aside_cm)))
             .add(v3(0, cm(c.above_cm), 0));
@@ -475,6 +488,15 @@ impl Session {
             .flat()
             .add(fwd.scale(cm(c.look_ahead_cm)))
             .add(v3(0, ONE / 2, 0));
+        // in a storm's troughs the hull drops metres below the level: the eye
+        // follows it down but stays a metre over the water where it is
+        let target_eye = v3(
+            target_eye.x,
+            target_eye
+                .y
+                .max(self.world.sea.height(target_eye.x, target_eye.z) + ONE),
+            target_eye.z,
+        );
         let k = if snap { ONE } else { c.follow_pct * ONE / 100 };
         self.camera = Camera {
             eye: self.camera.eye.lerp(target_eye, k),
@@ -495,6 +517,7 @@ impl Session {
             own_body: !self.scoping(),
             fish_base: self.fish_base[self.place],
             shown: self.shown_fish(),
+            eye: self.camera.eye,
         };
         let batch = scene::build(world, &self.look, &view);
         batch.emit(Pass::Solid, &mut out);
@@ -697,6 +720,22 @@ impl Session {
                     &[("kmh", decimal(fx::mul(w.hull.speed(), ONE * 36 / 10), 0))]
                 )
             ]));
+            let t = w.hull.throttle;
+            let lever = if t < 0 {
+                s.fill("value.reverse", &[("percent", decimal(-t * 100, 0))])
+            } else if t == 0 {
+                s.get("value.neutral")
+            } else {
+                s.fill("value.ahead", &[("percent", decimal(t * 100, 0))])
+            };
+            rows.push(json!([s.get("row.throttle"), lever]));
+            let deg = w.hull.steer * 360 / fx::TURN;
+            let side = match deg.signum() {
+                1 => s.fill("value.right", &[("deg", deg.to_string())]),
+                -1 => s.fill("value.left", &[("deg", (-deg).to_string())]),
+                _ => s.get("value.centred"),
+            };
+            rows.push(json!([s.get("row.outboard"), side]));
         }
         rows.push(json!([s.get("row.tide"), tide]));
         rows.push(json!([
@@ -771,6 +810,7 @@ impl Session {
             return vec![
                 json!(["↑ ↓", s.get("key.throttle")]),
                 json!(["← →", s.get("key.steer")]),
+                json!(["Space", s.get("key.neutral")]),
                 json!(["Esc", s.get("key.menu")]),
             ];
         }
@@ -951,6 +991,16 @@ impl Session {
         let places = self.places.iter().map(|p| s.get(&p.name)).collect();
         let boats = self.gear.boats.iter().map(|b| s.get(&b.name)).collect();
         let start = if w.fishing() { "start.fish" } else { "start.drive" };
+        // a place with more than one weather offers them in a dropdown (T18)
+        let here = &self.places[self.place];
+        let weathers: Vec<Value> = if here.weathers() > 1 {
+            vec![json!([
+                s.get("choose.weather"),
+                {"name": "weather.choose", "options": (0..here.weathers()).map(|i| json!({"value": i.to_string(), "label": s.get(&here.in_weather(i).weather), "on": i == self.weather})).collect::<Vec<_>>()},
+            ])]
+        } else {
+            Vec::new()
+        };
         let mut out = vec![json!({
             "id": "title-card",
             "heading": s.get("title"),
@@ -959,6 +1009,7 @@ impl Session {
                 [s.get("choose.place"), chips("place.choose", places, self.place)],
                 [s.get("choose.boat"), chips("boat.choose", boats, self.boat)],
             ],
+            "selects": weathers,
             "actions": [
                 {"name": "screen.show", "value": "fishing", "label": s.fill(start, &[("place", s.get(&w.place.name))]), "primary": true},
                 {"name": "screen.show", "value": "log", "label": s.get("log.open"), "primary": false},
@@ -1011,7 +1062,7 @@ impl Session {
             }
             how
         } else {
-            ["how.throttle", "how.steer", "how.jump"]
+            ["how.throttle", "how.steer", "how.neutral", "how.jump"]
                 .iter()
                 .map(|k| s.get(k))
                 .collect()
@@ -1028,10 +1079,9 @@ impl Session {
         match self.screen {
             Screen::Title => panels.extend(self.title_panels()),
             Screen::Fishing => {
-                let when = format!("{}.when", w.place.name);
                 panels.push(json!({
                     "id": "place",
-                    "eyebrow": format!("{} · {}", s.get(&w.place.name), s.get(&when)),
+                    "eyebrow": format!("{} · {}", s.get(&w.place.name), s.get(&w.place.weather)),
                     "rows": self.place_rows(),
                 }));
             }
@@ -1137,6 +1187,7 @@ impl Session {
                 "tick": w.tick,
                 "place": self.place,
                 "boat": self.boat,
+                "weather": self.weather,
                 "battery": decimal(w.battery * 100, 0),
                 "speed": decimal(fx::mul(w.hull.speed(), ONE * 36 / 10), 0),
                 "generation": self.generation,
@@ -1226,7 +1277,7 @@ pub mod tests {
         s.act("screen.show", "fishing").unwrap();
         let ui = s.ui();
         assert_eq!(ui["screen"], "fishing");
-        assert_eq!(ui["panels"][0]["eyebrow"], "Open Swell · afternoon");
+        assert_eq!(ui["panels"][0]["eyebrow"], "Open Swell · Fair afternoon");
         // the swell row is computed: Hs 2.07 m rounds to 2.1; T 8.98 s to 9
         assert_eq!(ui["panels"][0]["rows"][3][1], "2.1 m, 9 s");
         assert_eq!(
@@ -1270,7 +1321,7 @@ pub mod tests {
         );
         s.act("screen.show", "fishing").unwrap();
         let ui = s.ui();
-        assert_eq!(ui["panels"][0]["eyebrow"], "Ledge River · midday");
+        assert_eq!(ui["panels"][0]["eyebrow"], "Ledge River · Calm midday");
         assert_eq!(ui["panels"][0]["rows"][0][0], "Speed");
         assert_eq!(ui["fishing"], false);
     }
@@ -1335,6 +1386,71 @@ pub mod tests {
             .filter(|r| r[1].as_str().unwrap().starts_with("1 caught"))
             .count();
         assert_eq!(caught, 1);
+    }
+
+    #[test]
+    fn the_open_swell_offers_a_storm_with_a_mid_ocean_sea() {
+        let mut s = session(1);
+        let ui = s.ui();
+        assert_eq!(
+            ui["panels"][0]["selects"][0][1]["options"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        s.act("weather.choose", "1").unwrap();
+        assert_eq!(s.world.place.weather, "weather.storm");
+        // amplitudes 1.9 1.1 0.75 0.5 0.3 0.18 0.09 0.04 m: Σa² = 5.7653, so
+        // Hs = 4 √(5.7653 / 2) = 6.79 m; the tallest is 264 m long, so its period
+        // is √(2π × 264 / 9.81) = 13.0 s
+        let hs = s.world.sea.significant_height();
+        assert!((hs - ONE * 679 / 100).abs() < ONE / 50, "Hs {hs}");
+        let t = s.world.sea.peak_period();
+        assert!((t - 13 * ONE).abs() < ONE / 20, "T {t}");
+        s.act("screen.show", "fishing").unwrap();
+        let ui = s.ui();
+        assert_eq!(ui["panels"][0]["eyebrow"], "Open Swell · Storm");
+        assert_eq!(ui["panels"][0]["rows"][3][1], "6.8 m, 13 s");
+        // another place starts in its own weather; a weather it lacks is refused
+        s.act("place.choose", "1").unwrap();
+        assert_eq!(s.weather, 0);
+        assert_eq!(
+            s.act("weather.choose", "2"),
+            Err("There is no choice \"2\".".into())
+        );
+    }
+
+    #[test]
+    fn rain_falls_only_in_the_storm() {
+        use crate::render::Pass;
+        let mut s = session(1);
+        let count = |s: &Session| {
+            let view = scene::View {
+                meshes: s.meshes.len(),
+                own_body: true,
+                fish_base: SHAPES,
+                shown: None,
+                eye: V3::ZERO,
+            };
+            scene::build(&s.world, &s.look, &view).count_of(Shape::Cyl as usize, Pass::Glow)
+        };
+        let fair = count(&s);
+        s.act("weather.choose", "1").unwrap();
+        // 900 drops in data/places.json
+        assert_eq!(count(&s) - fair, 900);
+    }
+
+    #[test]
+    fn the_white_water_runs_at_two_point_six_metres_a_second() {
+        let mut s = session(1);
+        s.act("place.choose", "1").unwrap();
+        s.act("weather.choose", "1").unwrap();
+        // mid-channel at the start: the full 2.6 m/s, less about 1% for the
+        // nearest rocks 15 to 25 m off, whose doublets fall away as R²/d²
+        let v = s.world.sea.current_at(0, 0);
+        assert!((v.flat_len() - ONE * 26 / 10).abs() < ONE * 26 / 1000, "{v:?}");
+        assert_eq!(s.world.sea.river.as_ref().unwrap().rocks.len(), 54);
     }
 
     #[test]

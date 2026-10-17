@@ -16,7 +16,11 @@ Play it at `sgilson7.github.io/el-fishing`. There are two places, the Open Swell
 
 ## The speedboat
 
-Choose it on the title. Up and Down are the throttle, Left and Right steer. It planes as it gathers speed, slides in hard turns and leaves the water off the swell.
+Choose it on the title. Up and Down move a throttle lever that stays where you leave it (back past neutral is reverse), Left and Right turn the outboard, which swings back to the middle when you let go, and Space puts the throttle in neutral. It planes as it gathers speed, leans and slides through hard turns, and leaves the water off the swell.
+
+## Weather
+
+A place may offer more than one weather in the dropdown on the title. The Open Swell has a storm with a mid-ocean sea of about 7 m, a gale and rain; the Ledge River has white water running at 5 knots.
 
 ## How it is built
 

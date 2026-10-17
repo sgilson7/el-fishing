@@ -34,6 +34,15 @@ Stage 9, written by the agent. `C5 Consolidate in your own words`. A fresh sessi
 
 ## Open for the person
 
+Round 5 (T18 to T21):
+
+- R5.1 the Weather dropdown, built from the description of Ape Race, not Ape Race itself.
+- R5.2 the storm: 6.8 m at 13 s, wind held at 26 kn.
+- R5.4 the white water outruns the kayak.
+- R5.5 the speedboat's new keys and handling numbers.
+- R5.6 the river's scripted angler now has fifteen minutes.
+- R5.8 the round-5 strings.
+
 Round 4 (T8 to T17):
 
 - R4.3 one casting arm on W, S, A and D, and the steady-hands setting gone.
@@ -66,6 +75,7 @@ Round 1: a bibliography field from memory (R1.11); labels projected with a stale
 
 ## What passed
 
+- Round 5 (T18 to T21): `./scripts/check.sh` BUILDER CHECK PASSED (118 tests from `./scripts/count-tests.sh`, 1 ignored; the browser check in all three engines now also picks the storm from the dropdown and reads its sea); `python3 scripts/break_tests.py` 38 of 38 caught. Not published (BRIEF.md, Round 5).
 - Round 4, at 14b18f5 and again at 803e9a4 (the close-up without the rod): `./scripts/check.sh` BUILDER CHECK PASSED on 17 October 2026 (format, lint, 113 tests from `./scripts/count-tests.sh` with 1 ignored, release build, import audit, art, notebook, and the browser check in Chromium, Firefox and WebKit, which now also drives the battery, the fish log, the Ledge River and the speedboat).
 - `python3 scripts/break_tests.py`: 34 of 34 breaks caught.
 - Published on the person's word "publish" (R4.20) with `./scripts/publish.sh` from 0a6f657 (build 8bb8364420f0); the browser check against `https://sgilson7.github.io/el-fishing` passed in Chromium, Firefox and WebKit.

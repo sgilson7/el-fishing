@@ -212,8 +212,8 @@
   {
     "name": "a place chip rebuilds the world",
     "file": "crates/core/src/session.rs",
-    "find": "                self.place = Session::pick(v, self.places.len())?;\n                self.enter();",
-    "replace": "                self.place = Session::pick(v, self.places.len())?;",
+    "find": "                self.weather = 0;\n                self.enter();\n            }\n            (\"weather.choose\"",
+    "replace": "                self.weather = 0;\n            }\n            (\"weather.choose\"",
     "test": "choosing_a_place_and_a_craft_rebuilds_the_world"
   },
   {
@@ -229,5 +229,40 @@
     "find": "            self.log.push(Logged {",
     "replace": "            let _ = (Logged {",
     "test": "a_landed_fish_is_shown_and_written_in_the_log"
+  },
+  {
+    "name": "a weather swaps in its own sea (T18)",
+    "file": "crates/core/src/world.rs",
+    "find": "            p.sea = v.sea.clone();\n",
+    "replace": "\n",
+    "test": "the_open_swell_offers_a_storm_with_a_mid_ocean_sea"
+  },
+  {
+    "name": "rain falls in the storm (T18)",
+    "file": "crates/core/src/scene.rs",
+    "find": "    if w.place.rain > 0 {",
+    "replace": "    if false {",
+    "test": "rain_falls_only_in_the_storm"
+  },
+  {
+    "name": "the white water runs fast (T18)",
+    "file": "data/places.json",
+    "find": "\"current_mm_s\": 2600",
+    "replace": "\"current_mm_s\": 1230",
+    "test": "the_white_water_runs_at_two_point_six_metres_a_second"
+  },
+  {
+    "name": "the outboard swings back to the middle (T19)",
+    "file": "crates/core/src/hull.rs",
+    "find": "            self.steer -= self.steer.signum() * step.min(self.steer.abs());",
+    "replace": "            self.steer -= 0;",
+    "test": "the_throttle_lever_stays_where_it_is_left_and_the_outboard_recentres"
+  },
+  {
+    "name": "the outboard's push at the stern turns the hull (T19)",
+    "file": "crates/core/src/hull.rs",
+    "find": "                let torque = fx::mul(push_side, self.length() / 2);",
+    "replace": "                let torque = fx::mul(push_side, self.length() / 4);",
+    "test": "full_lock_at_full_throttle_turns_at_the_rate_the_water_allows"
   }
 ]
