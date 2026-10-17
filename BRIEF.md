@@ -55,6 +55,8 @@ Terms from fishing and paddling, defined in `GLOSSARY.md` before any string uses
 
 ## Autonomy
 
+**Round 4 (17 October 2026): no publishing grant.** The person asked for the river map, a scope that sees through the kayak, a shorter cast, a fish log, one casting arm, a fight cue, a wake, a battery power wind and a speedboat (`TRIAGE.md` T8 to T17), and named no publishing. The agent builds and checks locally and leaves publishing to the person.
+
 **Round 2 (17 October 2026): the plan is approved in advance.** The person wrote, word for word:
 
 > name the game "Extremely Lifelike Fishing", take your recomemndation to answer every question, begin the build, dont stop till the mvp is deployed, i give explicit permision to make deploy the website repo with a new chip when the mvp is deployed. start by getting just the first open ocean swells map ready for me to test, don't do the rest of whats in the mockup; just everything necessary to get the first level working and able to catch fish in it

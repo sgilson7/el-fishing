@@ -55,8 +55,8 @@ body[data-screen="settings"] #stage::after { content: ""; position: absolute; in
 body[data-screen="settings"] #settings { z-index: 2; }
 
 /* the arm keys, the tension ring, the message and the key bar */
-#arms { right: 18px; top: 18px; width: 290px; }
-.arm-grid { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px 10px; align-items: center; margin-top: 8px; font: 700 12.5px var(--body); }
+#arms { right: 18px; top: 18px; width: 220px; }
+.arm-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; margin-top: 8px; font: 700 12.5px var(--body); }
 .arm-grid .cell { display: inline-flex; gap: 4px; align-items: center; }
 #ring { right: 18px; bottom: 24px; width: 150px; text-align: center; padding: 12px; }
 #ring svg { width: 124px; height: 124px; display: block; margin: 0 auto; }
@@ -89,3 +89,15 @@ body[data-screen="settings"] #settings { z-index: 2; }
   #arms { display: none !important; }
   #keys { font-size: 12px; gap: 8px; }
 }
+#cue { left: 50%; transform: translateX(-50%); top: 74px; margin: 0; padding: 8px 26px; font: 800 26px var(--display); letter-spacing: 0.06em; text-transform: uppercase; border-width: 3px; }
+#cue[data-state="wind"] { color: var(--good); border-color: var(--good); }
+#cue[data-state="hold"] { color: var(--bad); border-color: var(--bad); }
+#cue[data-state="haul"] { color: var(--gold); border-color: var(--gold); animation: pulse 0.5s ease-in-out infinite alternate; }
+#battery { right: 18px; bottom: 210px; width: 150px; padding: 10px 12px; }
+#battery .bar { height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.14); margin: 6px 0 4px; overflow: hidden; }
+#battery .bar i { display: block; height: 100%; width: calc(var(--b, 1) * 100%); background: var(--good); border-radius: 999px; }
+#battery[data-state="flat"] .bar i { background: var(--bad); }
+#battery[data-state="running"] { border-color: var(--gold); box-shadow: 0 0 22px rgba(255, 207, 77, 0.55); }
+#battery[data-state="running"] .bar i { background: var(--gold); animation: pulse 0.12s linear infinite alternate; }
+#battery .battery-status { font: 700 12px var(--body); color: var(--muted); }
+@keyframes pulse { from { opacity: 1; } to { opacity: 0.45; } }

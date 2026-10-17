@@ -65,8 +65,8 @@
   {
     "name": "only the arm keys move the rod",
     "file": "crates/core/src/world.rs",
-    "find": "                both(RIGHT_SHOULDER_UP, RIGHT_SHOULDER_DOWN),",
-    "replace": "                both(RIGHT_SHOULDER_UP | PEDAL, RIGHT_SHOULDER_DOWN),",
+    "find": "                both(SHOULDER_UP, SHOULDER_DOWN),",
+    "replace": "                both(SHOULDER_UP | PEDAL, SHOULDER_DOWN),",
     "test": "only_the_arm_keys_move_the_rod"
   },
   {
@@ -98,10 +98,136 @@
     "test": "a_hooked_fish_tires_and_pulls_less"
   },
   {
-    "name": "the power wind stops when a fish has the lure",
+    "name": "line leaves the spool only as far as the lure has gone (T10)",
+    "file": "crates/core/src/line.rs",
+    "find": "                self.out = self.out.max(reach.min(allowed)).min(longest);\n",
+    "replace": "                self.out = self.out.max(reach).min(longest);\n",
+    "test": "a_cast_pays_out_no_more_line_than_the_lure_has_gone"
+  },
+  {
+    "name": "the scope's view leaves out the kayak (T9)",
+    "file": "crates/core/src/scene.rs",
+    "find": "    if view.own_body {\n        if w.fishing() {",
+    "replace": "    if true {\n        if w.fishing() {",
+    "test": "the_scope_sees_through_the_kayak"
+  },
+  {
+    "name": "the rod rises from the right forearm (T12)",
+    "file": "crates/core/src/arms.rs",
+    "find": "        let dir = swing(self.angle[2] + self.angle[3] + deg(s.rod_rise_deg));",
+    "replace": "        let dir = swing(self.angle[2] + deg(s.rod_rise_deg));",
+    "test": "the_rod_rises_twenty_degrees_above_the_right_forearm"
+  },
+  {
+    "name": "the power wind pulls in bursts (T15)",
     "file": "crates/core/src/world.rs",
-    "find": "            power: on(POWER_WIND) && self.holder.is_none(),",
-    "replace": "            power: on(POWER_WIND),",
-    "test": "the_power_wind_brings_a_lure_in_fast_and_not_a_fish"
+    "find": "        self.pulling = running && (self.power_ticks - 1) % period < on_ticks;",
+    "replace": "        self.pulling = running;",
+    "test": "the_power_wind_jerks_line_in"
+  },
+  {
+    "name": "the battery drains while the power wind runs (T15)",
+    "file": "crates/core/src/world.rs",
+    "find": "            (self.battery - ONE / (p.battery_s.max(1) * per_s)).max(0)",
+    "replace": "            self.battery",
+    "test": "the_battery_runs_eight_seconds_and_refills_in_forty_five"
+  },
+  {
+    "name": "the motor holds the drag up to its pull (T15)",
+    "file": "crates/core/src/line.rs",
+    "find": "                self.drag().max(deci(s.power_pull_dn))",
+    "replace": "                self.drag()",
+    "test": "the_power_wind_brings_in_a_pull_the_drag_would_give_to"
+  },
+  {
+    "name": "the river slows toward its banks (T16)",
+    "file": "crates/core/src/river.rs",
+    "find": "        fx::mul(self.speed, ONE - fx::mul(s2, s2))",
+    "replace": "        self.speed",
+    "test": "the_flow_is_fastest_mid_channel_and_still_at_the_banks"
+  },
+  {
+    "name": "the river runs round its loop (T16)",
+    "file": "crates/core/src/river.rs",
+    "find": "        v3(d.z, 0, -d.x).with_len(ONE)",
+    "replace": "        v3(0, 0, -ONE)",
+    "test": "the_river_runs_round_the_loop_back_to_the_start"
+  },
+  {
+    "name": "a rock turns the flow and leaves an eddy (T16)",
+    "file": "crates/core/src/river.rs",
+    "find": "                    slow = fx::mul(slow, ONE - fx::mul(ONE + self.eddy, f));",
+    "replace": "                    slow = fx::mul(slow, ONE - f);",
+    "test": "a_rock_slows_the_flow_ahead_speeds_it_beside_and_turns_it_back_behind"
+  },
+  {
+    "name": "the river bed is deepest mid-channel (T16)",
+    "file": "crates/core/src/river.rs",
+    "find": "        let deep = self.bank_depth + fx::mul(self.mid_depth - self.bank_depth, ONE - fx::mul(s, s));",
+    "replace": "        let deep = self.mid_depth;",
+    "test": "the_bed_is_deepest_mid_channel_and_the_land_stands_above_the_water"
+  },
+  {
+    "name": "banks and rocks push a point back into the water (T16)",
+    "file": "crates/core/src/river.rs",
+    "find": "                push = push.add(away.scale(clear - dist));",
+    "replace": "                push = push.add(away.scale(0));",
+    "test": "a_point_on_the_bank_or_in_a_rock_is_pushed_back_into_the_water"
+  },
+  {
+    "name": "the banks stop the kayak (T16)",
+    "file": "crates/core/src/hull.rs",
+    "find": "            self.keep_off_banks(sea);\n",
+    "replace": "\n",
+    "test": "a_kayak_pedalled_at_the_bank_stops_at_it"
+  },
+  {
+    "name": "trout hold behind rocks (T16)",
+    "file": "crates/core/src/world.rs",
+    "find": "            hold: self.hold_for(i),\n",
+    "replace": "            hold: None,\n",
+    "test": "trout_hold_in_the_slack_water_behind_their_rocks"
+  },
+  {
+    "name": "the speedboat's thrust (speedboat)",
+    "file": "data/gear.json",
+    "find": "\"thrust_n\": 5200,",
+    "replace": "\"thrust_n\": 1200,",
+    "test": "the_speedboat_planes_past_fifteen_metres_a_second"
+  },
+  {
+    "name": "a hull out of the water flies free (speedboat)",
+    "file": "crates/core/src/hull.rs",
+    "find": "            let touch = ONE * wet / PROBES as i32;",
+    "replace": "            let touch = ONE;",
+    "test": "a_hull_clear_of_the_water_falls_freely"
+  },
+  {
+    "name": "the speedboat is not fished from (speedboat)",
+    "file": "crates/core/src/world.rs",
+    "find": "            keys & !(bits::ARMS | bits::FINGER | bits::WIND | bits::POWER_WIND)",
+    "replace": "            keys",
+    "test": "the_speedboat_is_not_fished_from"
+  },
+  {
+    "name": "a place chip rebuilds the world",
+    "file": "crates/core/src/session.rs",
+    "find": "                self.place = Session::pick(v, self.places.len())?;\n                self.enter();",
+    "replace": "                self.place = Session::pick(v, self.places.len())?;",
+    "test": "choosing_a_place_and_a_craft_rebuilds_the_world"
+  },
+  {
+    "name": "the fight cue says hold near the drag (T13)",
+    "file": "crates/core/src/session.rs",
+    "find": "        if w.line.slipping || w.line.tension >= w.line.drag() * 3 / 4 {\n            return Some((\"hold\"",
+    "replace": "        if w.line.slipping {\n            return Some((\"hold\"",
+    "test": "the_fight_cue_says_wind_hold_or_haul"
+  },
+  {
+    "name": "a landed fish goes in the log (T11)",
+    "file": "crates/core/src/session.rs",
+    "find": "            self.log.push(Logged {",
+    "replace": "            let _ = (Logged {",
+    "test": "a_landed_fish_is_shown_and_written_in_the_log"
   }
 ]

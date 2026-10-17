@@ -54,12 +54,72 @@ pub struct Look {
     pub lure_glow: i32,
     pub grid_cells: i32,
     pub grid_radius_m: i32,
+    /// The speed through the water at which the wake is drawn whole.
+    pub wake_full_cm_s: i32,
+    /// Each place's changes to the look above, by the place's name. A
+    /// change may only replace a value the look already has.
+    #[serde(default)]
+    pub places: BTreeMap<String, LookPatch>,
+    /// A boat's own camera, by the boat's name; the others use `camera`.
+    #[serde(default)]
+    pub boat_cameras: BTreeMap<String, CameraLook>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
+pub struct LookPatch {
+    #[serde(default)]
+    pub sun: Option<Sun>,
+    #[serde(default)]
+    pub shapes: BTreeMap<String, Vec<Value>>,
+    #[serde(default)]
+    pub water: BTreeMap<String, Vec<Value>>,
+    #[serde(default)]
+    pub sky: BTreeMap<String, Vec<Value>>,
+    #[serde(default)]
+    pub colours: BTreeMap<String, String>,
 }
 
 /// A uniform's name and its Q16 values.
 pub type Uniform = (String, Vec<i32>);
 
 impl Look {
+    /// The look at a place, from a boat: the place's changes laid over the
+    /// common look, and the boat's camera. A change to a name the common look
+    /// lacks is an error, so every place sends the shaders the same uniforms.
+    pub fn at(&self, place: &str, boat: &str) -> Result<Look, String> {
+        let mut l = self.clone();
+        if let Some(p) = self.places.get(place) {
+            if let Some(sun) = &p.sun {
+                l.sun = sun.clone();
+            }
+            for (table, patch, what) in [
+                (&mut l.shapes, &p.shapes, "shapes"),
+                (&mut l.water, &p.water, "water"),
+                (&mut l.sky, &p.sky, "sky"),
+            ] {
+                for (k, v) in patch {
+                    match table.get(k) {
+                        Some(old) if old.len() == v.len() => {
+                            table.insert(k.clone(), v.clone());
+                        }
+                        _ => return Err(format!("data/look.json: {place} changes {what}.{k}, which the common look does not have in that size.")),
+                    }
+                }
+            }
+            for (k, v) in &p.colours {
+                if !l.colours.contains_key(k) {
+                    return Err(format!("data/look.json: {place} changes the colour {k}, which the common look does not have."));
+                }
+                l.colours.insert(k.clone(), v.clone());
+            }
+        }
+        if let Some(c) = self.boat_cameras.get(boat) {
+            l.camera = c.clone();
+        }
+        Ok(l)
+    }
+
     /// The direction toward the sun.
     pub fn sun_dir(&self) -> V3 {
         let yaw = self.sun.toward_deg * fx::TURN / 360;

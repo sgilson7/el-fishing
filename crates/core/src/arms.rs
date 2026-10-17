@@ -3,10 +3,10 @@
 //! the angler's upright plane; a motor turns a joint while its key is held
 //! and lets it coast to a stop when the key is let go.
 //!
-//! The right hand holds the grip and the left hand the butt below it, so
-//! the rod runs from the left hand through the right and on to the tip. The
-//! steady-hands setting blends that line toward the right forearm's, so a
-//! player can cast with the right arm alone.
+//! One arm casts (T12): the right hand holds the grip and the rod rises a
+//! fixed angle above the right forearm. The left arm rests by the reel and
+//! its joints keep their starting angles, so the player's right hand is free
+//! for the mouse and the scope.
 //!
 //! Everything here is in hull space (`hull.rs`): x across, y up, z toward
 //! the bow. Angles are in turns (`fx::TURN`); a shoulder at 0 hangs the
@@ -63,10 +63,7 @@ pub struct Arms {
     pub angle: [i32; JOINTS],
     /// Angle units a tick.
     pub speed: [i32; JOINTS],
-    /// 0 off, 1 some, 2 more.
-    pub steady: i32,
     pub slow: bool,
-    last_dir: V3,
 }
 
 /// The rod in hull space.
@@ -103,16 +100,12 @@ fn swing(a: i32) -> V3 {
 impl Arms {
     pub fn new(spec: ArmSpec) -> Arms {
         let angle = spec.start_deg.map(deg);
-        let mut a = Arms {
+        Arms {
             spec,
             angle,
             speed: [0; JOINTS],
-            steady: 1,
             slow: false,
-            last_dir: v3(0, 0, ONE),
-        };
-        a.last_dir = a.rod().dir;
-        a
+        }
     }
 
     fn limits(&self, j: usize) -> (i32, i32) {
@@ -151,7 +144,6 @@ impl Arms {
             }
             self.angle[j] = next.clamp(lo, hi);
         }
-        self.last_dir = self.rod().dir;
     }
 
     /// The left arm (`right` false) or the right arm.
@@ -179,24 +171,11 @@ impl Arms {
         }
     }
 
-    /// The rod: from the two hands, blended toward the right forearm's line
-    /// by the steady-hands setting.
+    /// The rod: in the right hand, rising above the right forearm.
     pub fn rod(&self) -> Rod {
         let s = &self.spec;
-        let left = self.limb(false).hand;
-        let right = self.limb(true).hand;
-        let between = right.sub(left);
-        let hands = if between.len() < ONE / 20 {
-            self.last_dir
-        } else {
-            between.with_len(ONE)
-        };
-        let one_hand = swing(self.angle[2] + self.angle[3] + deg(s.rod_rise_deg));
-        let dir = hands
-            .scale(ONE * (2 - self.steady.clamp(0, 2)) / 2)
-            .add(one_hand.scale(ONE * self.steady.clamp(0, 2) / 2))
-            .with_len(ONE);
-        let grip = right;
+        let dir = swing(self.angle[2] + self.angle[3] + deg(s.rod_rise_deg));
+        let grip = self.limb(true).hand;
         let butt = grip.sub(dir.scale(s.grip_from_butt_cm * ONE / 100));
         let tip = butt.add(dir.scale(s.rod_cm * ONE / 100));
         Rod { butt, grip, tip, dir }
@@ -270,15 +249,15 @@ pub mod tests {
     }
 
     #[test]
-    fn the_rod_runs_from_the_left_hand_through_the_right() {
+    fn the_rod_rises_twenty_degrees_above_the_right_forearm() {
+        // shoulder 60 and elbow 30 hold the forearm level and forward; the rod
+        // then points 20 degrees above level: dir = (0, sin 20, cos 20)
         let mut a = Arms::new(spec());
-        a.steady = 0;
+        a.angle = [deg(20), deg(100), deg(60), deg(30)];
         let r = a.rod();
-        let l = a.limb(false).hand;
-        // the left hand lies on the rod's line, behind the grip
-        let off = l.sub(r.grip);
-        assert!(off.cross(r.dir).len() < ONE / 100, "{off:?} {:?}", r.dir);
-        assert!(off.dot(r.dir) < 0, "behind the grip");
+        assert!((r.dir.y - 22_415).abs() < 100, "{:?}", r.dir);
+        assert!((r.dir.z - 61_584).abs() < 100, "{:?}", r.dir);
+        assert_eq!(r.grip, a.limb(true).hand);
         assert!((r.tip.sub(r.butt).len() - 210 * ONE / 100).abs() < ONE / 100);
     }
 }

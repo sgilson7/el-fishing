@@ -14,7 +14,7 @@ async function main() {
   const files = [
     "strings.json",
     "gear.json",
-    "place.json",
+    "places.json",
     "look.json",
     "glossary.md",
     "controls.json",
@@ -25,12 +25,12 @@ async function main() {
     "shaders/water.vert",
     "shaders/water.frag",
   ];
-  const [strings, gear, place, look, glossary, controls, skyVert, skyFrag, shapesVert, shapesFrag, waterVert, waterFrag] =
+  const [strings, gear, places, look, glossary, controls, skyVert, skyFrag, shapesVert, shapesFrag, waterVert, waterFrag] =
     await Promise.all(files.map((f) => text(`data/${f}`)));
   // the page draws a seed; the core keeps it (rng.rs)
   const seed = new Uint32Array(1);
   crypto.getRandomValues(seed);
-  const game = new Game(strings, gear, place, look, glossary, seed[0]);
+  const game = new Game(strings, gear, places, look, glossary, seed[0]);
   const N = JSON.parse(game.numbers());
   const C = JSON.parse(controls);
   const canvas = el("gl");

@@ -49,6 +49,19 @@ pub struct HullSpec {
     pub wave_push_pct: i32,
     /// Extra damping per step of the steady-hull setting, percent.
     pub steady_pct: i32,
+    /// Where a drift turns the hull about, as a share of the half-length from
+    /// the middle toward the bow: 100 is the bow (a kayak), -30 a little
+    /// behind the middle (a speedboat steered from its stern).
+    #[serde(default = "bow")]
+    pub pivot_pct: i32,
+    /// A planing hull's lift from its speed through the water, N at 10 m/s,
+    /// growing as the square of the speed; 0 for a kayak.
+    #[serde(default)]
+    pub planing_n: i32,
+}
+
+fn bow() -> i32 {
+    100
 }
 
 /// What the player asks of the hull this tick: -1, 0 or 1 each.
@@ -86,6 +99,11 @@ const FINE: u32 = 16;
 pub const SUBSTEPS: i32 = 4;
 pub const PROBES_ALONG: i32 = 8;
 pub const PROBES: usize = 16;
+
+/// A 64-bit Q16 sum over a Q16 value, saturating.
+fn div64(a: i64, b: Fx) -> Fx {
+    ((a << 16) / b.max(1) as i64).clamp(i32::MIN as i64, i32::MAX as i64) as Fx
+}
 
 fn rad_to_turns(r: Fx) -> i32 {
     fx::div(r, TAU)
@@ -177,7 +195,9 @@ impl Hull {
         let max_roll = s.max_roll_deg * TAU / 360;
         let probes = self.probes();
         for _ in 0..SUBSTEPS {
-            let (mut lift, mut pitch_t, mut roll_t) = (0, 0, 0);
+            // summed in 64 bits: a speedboat's sixteen probes together pass
+            // the 32 767 N a Q16 value holds
+            let (mut lift, mut pitch_t, mut roll_t) = (0i64, 0i64, 0i64);
             let (mut sx, mut sz, mut wet) = (0, 0, 0);
             for p in &probes {
                 let w = self.to_world(*p);
@@ -187,21 +207,36 @@ impl Hull {
                     continue;
                 }
                 let f = fx::mul(rho_g_a, d);
-                lift += f;
-                pitch_t += fx::mul(f, p.z);
-                roll_t += fx::mul(f, p.x);
+                lift += f as i64;
+                pitch_t += fx::mul(f, p.z) as i64;
+                roll_t += fx::mul(f, p.x) as i64;
                 sx += surface.slope_x;
                 sz += surface.slope_z;
                 wet += 1;
             }
+            // the water damps the hull only where it touches it: out of the
+            // water a hull flies free, off a wave's crest (the speedboat)
+            let touch = ONE * wet / PROBES as i32;
+            // a planing hull rides up on its speed through the water
+            let through = self.vel.sub(sea.surface_velocity(self.pos.x, self.pos.z)).flat();
+            let u = through.dot(self.forward()) as Fx;
+            let plane = if s.planing_n > 0 && wet > 0 {
+                let k = fx::div(u.max(0), 10 * ONE);
+                fx::mul(fx::mul(s.planing_n * ONE, fx::mul(k, k)), touch).min(weight / 10 * 9)
+            } else {
+                0
+            };
+            let damp = |per_100: i32| fx::mul(damp(per_100), touch);
             // heave
-            let ay = fx::div(lift - weight, m) - fx::mul(damp(s.heave_damp), self.vel.y);
+            let ay = div64(lift + plane as i64 - weight as i64, m) - fx::mul(damp(s.heave_damp), self.vel.y);
             self.vel.y += fx::mul(ay, h);
             // pitch and roll; the weight above the keel tips the hull further in a roll
             let tip = fx::mul(fx::mul(weight, lever), fx::sin(rad_to_turns(self.roll)));
+            // planing lifts the bow: the lift acts a tenth of the length ahead of the middle
+            let pitch_t = pitch_t + fx::mul(plane, self.length() / 10) as i64;
             let ap =
-                fx::div(pitch_t, s.pitch_inertia_kg_m2 * ONE) - fx::mul(damp(s.pitch_damp), self.pitch_rate);
-            let ar = fx::div(roll_t + tip, s.roll_inertia_kg_m2 * ONE)
+                div64(pitch_t, s.pitch_inertia_kg_m2 * ONE) - fx::mul(damp(s.pitch_damp), self.pitch_rate);
+            let ar = div64(roll_t + tip as i64, s.roll_inertia_kg_m2 * ONE)
                 - fx::mul(damp(s.roll_damp), self.roll_rate);
             self.pitch_rate += fx::mul(ap, h);
             self.roll_rate += fx::mul(ar, h);
@@ -219,13 +254,22 @@ impl Hull {
             let rel = self.vel.sub(water).flat();
             let u = rel.dot(fwd) as Fx;
             let w = rel.dot(right) as Fx;
-            let thrust = match input.pedal.signum() {
-                1 => s.thrust_n * ONE,
-                -1 => -s.thrust_n * ONE * s.reverse_pct / 100,
-                _ => 0,
+            // the pedals' fins or the propeller push only while in the water
+            let thrust = if wet == 0 {
+                0
+            } else {
+                match input.pedal.signum() {
+                    1 => s.thrust_n * ONE,
+                    -1 => -s.thrust_n * ONE * s.reverse_pct / 100,
+                    _ => 0,
+                }
             };
-            let along = thrust - fx::mul(s.drag_along * ONE, fx::mul(u, u.abs()));
-            let across = -fx::mul(s.drag_across * ONE, fx::mul(w, w.abs())) - s.drag_across_linear * w;
+            // the water drags only on a hull in it
+            let along = thrust - fx::mul(fx::mul(s.drag_along * ONE, fx::mul(u, u.abs())), touch);
+            let across = fx::mul(
+                -fx::mul(s.drag_across * ONE, fx::mul(w, w.abs())) - s.drag_across_linear * w,
+                touch,
+            );
             let mut f = fwd.scale(along).add(right.scale(across));
             if wet > 0 {
                 let push = fx::mul(weight, s.wave_push_pct * ONE / 100) / wet;
@@ -246,18 +290,48 @@ impl Hull {
             self.pos.x = (self.fine_pos[0] >> FINE) as Fx;
             self.pos.z = (self.fine_pos[1] >> FINE) as Fx;
             self.pos.y += fx::mul(self.vel.y, h);
+            self.keep_off_banks(sea);
         }
         if input.drift != 0 {
             self.drift(input.drift.signum());
         }
     }
 
-    /// Turns the hull about its bow: the bow keeps its place and the stern swings.
+    /// A river's banks and rocks stop the hull: the middle keeps half a beam
+    /// and a little clear, the bow and stern a little, and the speed into
+    /// whatever it met is lost (T16).
+    fn keep_off_banks(&mut self, sea: &Sea) {
+        let half = self.length() / 2;
+        let clear = ONE / 5;
+        let beam = self.spec.beam_cm * ONE / 200 + clear;
+        for (local, margin) in [
+            (V3::ZERO, beam),
+            (v3(0, 0, half), clear),
+            (v3(0, 0, -half), clear),
+        ] {
+            let push = sea.push_out(self.to_world(local), margin);
+            if push == V3::ZERO {
+                continue;
+            }
+            self.pos = self.pos.add(push.flat());
+            let n = push.flat().with_len(ONE);
+            let into = self.vel.flat().dot(n) as Fx;
+            if into < 0 {
+                self.vel = self.vel.sub(n.scale(into));
+            }
+            self.fine_pos = [(self.pos.x as i64) << FINE, (self.pos.z as i64) << FINE];
+            self.fine_vel = [(self.vel.x as i64) << FINE, (self.vel.z as i64) << FINE];
+        }
+    }
+
+    /// Turns the hull about its pivot (a kayak's bow): the pivot keeps its
+    /// place and the rest swings.
     fn drift(&mut self, dir: i32) {
-        let bow = self.bow();
+        let at = v3(0, 0, self.length() / 2 * self.spec.pivot_pct / 100);
+        let pivot = self.to_world(at);
         let step = self.spec.drift_deg_s * fx::TURN / 360 / TICKS_PER_SECOND as i32;
         self.heading = (self.heading + dir * step).rem_euclid(fx::TURN);
-        let moved = self.bow().sub(bow);
+        let moved = self.to_world(at).sub(pivot);
         self.pos = self.pos.sub(moved);
         self.fine_pos = [(self.pos.x as i64) << FINE, (self.pos.z as i64) << FINE];
     }
@@ -291,7 +365,28 @@ mod tests {
             windage: 480,
             wave_push_pct: 100,
             steady_pct: 50,
+            pivot_pct: 100,
+            planing_n: 0,
         }
+    }
+
+    #[test]
+    fn a_hull_clear_of_the_water_falls_freely() {
+        // dropped from 3 m over still water, half a second falls g t² / 2 =
+        // 9.81 × 0.25 / 2 = 1.226 m, at 4.9 m/s: the water's damping acts only
+        // on a hull that touches it
+        let sea = still_sea();
+        let mut h = Hull::new(spec(), v3(0, 3 * ONE, 0), 0);
+        for _ in 0..30 {
+            h.tick(&sea, HullInput::default(), V3::ZERO);
+        }
+        let fell = 3 * ONE - h.pos.y;
+        assert!((fell - ONE * 1226 / 1000).abs() < ONE / 50, "fell {fell}");
+        assert!(
+            (h.vel.y + ONE * 4905 / 1000).abs() < ONE / 20,
+            "speed {}",
+            h.vel.y
+        );
     }
 
     fn still_sea() -> Sea {
@@ -310,6 +405,7 @@ mod tests {
             wind_mm_s: 0,
             density_kg_m3: 1025,
             depth_cm: 1800,
+            river: None,
         });
         s.waves_on = false;
         s.tide_on = false;

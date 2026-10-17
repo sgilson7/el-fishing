@@ -72,14 +72,11 @@ export function makeUi(el, act) {
   function arms(a) {
     const box = el("arms");
     const grid = make("div", "arm-grid");
-    grid.append(make("span"), make("span", "muted", a.left), make("span", "muted", a.right));
-    for (const [label, left, right] of a.rows) {
+    for (const [label, keys] of a.rows) {
       grid.append(make("span", "", label));
-      for (const side of [left, right]) {
-        const cell = make("span", "cell");
-        for (const k of side) cell.append(k.key ? keyCap(k) : make("small", "muted", k.note));
-        grid.append(cell);
-      }
+      const cell = make("span", "cell");
+      for (const k of keys) cell.append(k.key ? keyCap(k) : make("small", "muted", k.note));
+      grid.append(cell);
     }
     box.replaceChildren(make("div", "eyebrow", a.heading), grid);
   }
@@ -122,6 +119,25 @@ export function makeUi(el, act) {
     box.querySelector(".ring-label").textContent = t.label;
   }
 
+  // the fight cue under the message: wind, hold or haul (T13)
+  function cue(c) {
+    const box = el("cue");
+    box.hidden = !c;
+    if (!c) return;
+    box.dataset.state = c.state;
+    if (box.textContent !== c.text) box.textContent = c.text;
+  }
+
+  // the power wind's battery, flashing while it pulls (T15)
+  function battery(b, show) {
+    const box = el("battery");
+    box.hidden = !show;
+    box.dataset.state = b.state;
+    box.style.setProperty("--b", b.fraction);
+    box.querySelector(".battery-label").textContent = b.label;
+    box.querySelector(".battery-status").textContent = b.status;
+  }
+
   return {
     draw(view) {
       hints = view.hints;
@@ -137,14 +153,16 @@ export function makeUi(el, act) {
         seen.arms = armsNow;
         arms(view.arms);
       }
-      el("arms").hidden = !(view.hud && view.arms_open);
+      el("arms").hidden = !(view.fishing && view.arms_open);
       const keysNow = JSON.stringify(view.keys);
       if (keysNow !== seen.keys) {
         seen.keys = keysNow;
         keys(view.keys);
       }
       el("keys").hidden = !view.hud;
-      ring(view.tension, view.hud);
+      ring(view.tension, view.fishing);
+      cue(view.cue);
+      battery(view.battery, view.fishing);
       scope(view.scope);
       const m = el("message");
       m.hidden = !view.message;

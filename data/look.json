@@ -1,52 +1,199 @@
 {
   "_note": "Presentation numbers for the Open Swell's look, after the ocean mockup. Numbers are thousandths (so 640 is 0.64); a colour is a hex string. The core turns each list into a shader uniform of that name; the shaders hold no numbers of their own (Builder D3).",
-  "sun": { "toward_deg": 200, "elevation_deg": 24 },
+  "sun": {
+    "toward_deg": 200,
+    "elevation_deg": 24
+  },
   "shapes": {
-    "uEps": [1],
-    "uMix": [640, 460, 240, 500],
-    "uGlow": [1600, 1080],
-    "uSkyLight": ["#c8d8ec"],
-    "uGroundLight": ["#3e5560"],
-    "uSun": ["#ffe9c8"],
-    "uFogColour": ["#b9c9d4"],
-    "uFog": [60000, 900000],
-    "uDeep": ["#0c3a52"],
-    "uMurk": [7000, 2600]
+    "uEps": [
+      1
+    ],
+    "uMix": [
+      640,
+      460,
+      240,
+      500
+    ],
+    "uGlow": [
+      1600,
+      1080
+    ],
+    "uSkyLight": [
+      "#c8d8ec"
+    ],
+    "uGroundLight": [
+      "#3e5560"
+    ],
+    "uSun": [
+      "#ffe9c8"
+    ],
+    "uFogColour": [
+      "#b9c9d4"
+    ],
+    "uFog": [
+      60000,
+      900000
+    ],
+    "uDeep": [
+      "#0c3a52"
+    ],
+    "uMurk": [
+      7000,
+      2600
+    ]
   },
   "water": {
-    "uTau": [6283],
-    "uLod": [2000, 5000],
-    "uHalf": [500],
-    "uDeep": ["#0b3550"],
-    "uShallow": ["#1f7088"],
-    "uCrest": ["#56e0d0"],
-    "uSkyTop": ["#4b78b8"],
-    "uSkyHor": ["#cfdbe3"],
-    "uSunCol": ["#fff0d8"],
-    "uFogColour": ["#b9c9d4"],
-    "uFog": [60000, 900000],
-    "uFoamColour": ["#eef4f4"],
-    "uLook": [550, 20, 5000, 3000],
-    "uGlint": [380000, 5000, 40000, 120],
-    "uBody": [350, 900, 750, 350],
-    "uCrestLight": [900, 1400, 200, 550],
-    "uFoam": [550, 1050, 1300, 2300],
-    "uFoamEdge": [350, 750, 900, 550],
-    "uDetail": [1300, 3100, 400, 250],
-    "uFlow": [120000, 0, 0, 0],
-    "uHash": [103, 1, 250, 33330],
-    "uWake": [354, 3000, 90, 1600],
-    "uWakeK": [9000, 6000, 800, 550],
-    "uRingK": [1600, 2200, 14000, 600],
-    "uClear": [350, 900, 150, 0]
+    "uTau": [
+      6283
+    ],
+    "uLod": [
+      2000,
+      5000
+    ],
+    "uHalf": [
+      500
+    ],
+    "uDeep": [
+      "#0b3550"
+    ],
+    "uShallow": [
+      "#1f7088"
+    ],
+    "uCrest": [
+      "#56e0d0"
+    ],
+    "uSkyTop": [
+      "#4b78b8"
+    ],
+    "uSkyHor": [
+      "#cfdbe3"
+    ],
+    "uSunCol": [
+      "#fff0d8"
+    ],
+    "uFogColour": [
+      "#b9c9d4"
+    ],
+    "uFog": [
+      60000,
+      900000
+    ],
+    "uFoamColour": [
+      "#eef4f4"
+    ],
+    "uLook": [
+      550,
+      20,
+      5000,
+      3000
+    ],
+    "uGlint": [
+      380000,
+      5000,
+      40000,
+      120
+    ],
+    "uBody": [
+      350,
+      900,
+      750,
+      350
+    ],
+    "uCrestLight": [
+      900,
+      1400,
+      200,
+      550
+    ],
+    "uFoam": [
+      550,
+      1050,
+      1300,
+      2300
+    ],
+    "uFoamEdge": [
+      350,
+      750,
+      900,
+      550
+    ],
+    "uDetail": [
+      1300,
+      3100,
+      400,
+      250
+    ],
+    "uFlow": [
+      120000,
+      0,
+      0,
+      0
+    ],
+    "uHash": [
+      103,
+      1,
+      250,
+      33330
+    ],
+    "uWake": [
+      354,
+      2200,
+      60,
+      1600
+    ],
+    "uWakeK": [
+      14000,
+      9000,
+      600,
+      900
+    ],
+    "uRingK": [
+      1600,
+      2200,
+      14000,
+      600
+    ],
+    "uClear": [
+      350,
+      900,
+      150,
+      0
+    ],
+    "uFlowK": [
+      3000,
+      300,
+      1100,
+      4000
+    ],
+    "uStreak": [
+      250,
+      4000,
+      700,
+      860
+    ]
   },
   "sky": {
-    "uTop": ["#4b78b8"],
-    "uHor": ["#cfdbe3"],
-    "uBelow": ["#b9c9d4"],
-    "uSunCol": ["#fff0d8"],
-    "uSkyK": [550, 8000, 250, 2000],
-    "uDisc": [2600000]
+    "uTop": [
+      "#4b78b8"
+    ],
+    "uHor": [
+      "#cfdbe3"
+    ],
+    "uBelow": [
+      "#b9c9d4"
+    ],
+    "uSunCol": [
+      "#fff0d8"
+    ],
+    "uSkyK": [
+      550,
+      8000,
+      250,
+      2000
+    ],
+    "uDisc": [
+      2600000
+    ]
   },
   "camera": {
     "behind_cm": 620,
@@ -55,7 +202,11 @@
     "look_ahead_cm": 900,
     "focal_x1000": 2145,
     "follow_pct": 12,
-    "scope_eye_cm": [6, 112, 21],
+    "scope_eye_cm": [
+      6,
+      112,
+      21
+    ],
     "scope_min_zoom": 4,
     "scope_max_zoom": 16,
     "scope_start_zoom": 10
@@ -81,10 +232,103 @@
     "stack": "#8a7a6a",
     "stack_top": "#6d8a46",
     "cloud": "#ffffff",
-    "gull": "#f4f4f0"
+    "gull": "#f4f4f0",
+    "ledge": "#9c7a55",
+    "ledge_dark": "#7a5e43",
+    "pine": "#2f5a3a",
+    "trunk": "#5a4130",
+    "bed": "#6d6450",
+    "boulder": "#5c5e60",
+    "boat_hull": "#f2f2ee",
+    "boat_deck": "#d8d2c4",
+    "boat_trim": "#c8402e"
   },
   "line_glow": 700,
   "lure_glow": 900,
   "grid_cells": 192,
-  "grid_radius_m": 900
+  "grid_radius_m": 900,
+  "wake_full_cm_s": 80,
+  "places": {
+    "place.ledge_river": {
+      "sun": {
+        "toward_deg": 160,
+        "elevation_deg": 58
+      },
+      "water": {
+        "uDeep": [
+          "#1d4a48"
+        ],
+        "uShallow": [
+          "#3f8a7c"
+        ],
+        "uCrest": [
+          "#7fe0c8"
+        ],
+        "uSkyTop": [
+          "#5f8fc4"
+        ],
+        "uSkyHor": [
+          "#d3dde2"
+        ],
+        "uFogColour": [
+          "#c4d0d4"
+        ],
+        "uFog": [
+          90000,
+          520000
+        ],
+        "uClear": [
+          520,
+          950,
+          150,
+          0
+        ]
+      },
+      "shapes": {
+        "uFogColour": [
+          "#c4d0d4"
+        ],
+        "uFog": [
+          90000,
+          520000
+        ],
+        "uDeep": [
+          "#1d4a48"
+        ],
+        "uMurk": [
+          3500,
+          1600
+        ]
+      },
+      "sky": {
+        "uTop": [
+          "#5f8fc4"
+        ],
+        "uHor": [
+          "#d3dde2"
+        ],
+        "uBelow": [
+          "#c4d0d4"
+        ]
+      }
+    }
+  },
+  "boat_cameras": {
+    "craft.speedboat": {
+      "behind_cm": 1100,
+      "above_cm": 380,
+      "aside_cm": 0,
+      "look_ahead_cm": 1600,
+      "focal_x1000": 2145,
+      "follow_pct": 18,
+      "scope_eye_cm": [
+        6,
+        112,
+        21
+      ],
+      "scope_min_zoom": 4,
+      "scope_max_zoom": 16,
+      "scope_start_zoom": 10
+    }
+  }
 }

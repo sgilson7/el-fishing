@@ -9,8 +9,9 @@ use crate::fx::{self, Fx, ONE};
 use crate::geom::{v3, V3};
 use crate::hull::Hull;
 use crate::look::Look;
-use crate::mesh::{Shape, SHAPES};
+use crate::mesh::Shape;
 use crate::render::{Batch, Frame3, Pass, Rgb};
+use crate::river::River;
 use crate::world::World;
 
 fn cm(x: i32, y: i32, z: i32) -> V3 {
@@ -40,10 +41,83 @@ fn bone(b: &mut Batch, a: V3, c: V3, r: Fx, rgb: Rgb) {
     );
 }
 
-/// `own_body` is false in the scope's view: the eye is the angler's, so the
-/// angler and the rod in their hands are not drawn.
-pub fn build(w: &World, look: &Look, meshes: usize, own_body: bool) -> Batch {
-    let mut b = Batch::new(meshes);
+/// How a frame is seen.
+pub struct View {
+    pub meshes: usize,
+    /// False in the scope's view: the eye is the angler's, so the angler,
+    /// the rod in their hands and the kayak under them are not drawn, and
+    /// the scope sees a fish below the boat through it (T9).
+    pub own_body: bool,
+    /// The mesh number of this place's first species.
+    pub fish_base: usize,
+    /// A landed fish held up to be looked at: which, where, facing which way (T11).
+    pub shown: Option<(usize, V3, i32)>,
+}
+
+pub fn build(w: &World, look: &Look, view: &View) -> Batch {
+    let mut b = Batch::new(view.meshes);
+    if view.own_body {
+        if w.fishing() {
+            kayak(&mut b, w, look);
+        } else {
+            speedboat(&mut b, w, look);
+        }
+        angler(&mut b, w, look);
+    }
+    if w.fishing() {
+        rod_and_line(&mut b, w, look, view.own_body);
+    }
+    for (i, f) in w.fish.iter().enumerate() {
+        match view.shown {
+            Some((j, at, heading)) if j == i => {
+                let mut held = f.clone();
+                held.pos = at;
+                held.vel = V3::ZERO;
+                held.heading = heading;
+                held.mouth = 0;
+                fish(&mut b, w, &held, i, view.fish_base);
+            }
+            _ => fish(&mut b, w, f, i, view.fish_base),
+        }
+    }
+    scenery(&mut b, w, look);
+    if let Some(r) = &w.sea.river {
+        river(&mut b, r, look);
+    }
+    b
+}
+
+/// The speedboat: a planing hull with a deck, a windscreen, a console, a
+/// seat and an outboard on the transom. Driven, not fished from.
+fn speedboat(b: &mut Batch, w: &World, look: &Look) {
+    let col = |n: &str| look.colour(n);
+    let h = &w.hull;
+    let s = &h.spec;
+    // the hull mesh is lofted at the kayak's size; stretch it to this hull's
+    let k = |cm: i32, kayak: i32| ONE * cm / kayak;
+    let hf = Frame3 {
+        x: h.rotate(v3(k(s.beam_cm, 86) * 3 / 4, 0, 0)),
+        y: h.rotate(v3(0, k(s.depth_cm, 30) * 2 / 3, 0)),
+        z: h.rotate(v3(0, 0, k(s.length_cm, 390))),
+    };
+    b.solid(Shape::Hull as usize, h.pos, &hf, col("boat_hull"));
+    part(
+        b,
+        h,
+        Shape::Cube,
+        cm(0, 38, -40),
+        cm(150, 6, 380),
+        col("boat_deck"),
+    );
+    part(b, h, Shape::Cube, cm(0, 62, 40), cm(70, 40, 40), col("boat_trim"));
+    part(b, h, Shape::Cube, cm(0, 92, 62), cm(120, 30, 4), col("lens"));
+    part(b, h, Shape::Cube, cm(0, 52, -40), cm(60, 20, 60), col("seat"));
+    part(b, h, Shape::Cube, cm(0, 80, -68), cm(60, 50, 8), col("seat"));
+    part(b, h, Shape::Cube, cm(0, 60, -270), cm(36, 56, 40), col("dark"));
+    part(b, h, Shape::Cube, cm(0, 10, -290), cm(10, 70, 18), col("dark"));
+}
+
+fn kayak(b: &mut Batch, w: &World, look: &Look) {
     let col = |n: &str| look.colour(n);
     let h = &w.hull;
     // the hull, lofted at its own size, and what is fixed to it
@@ -53,35 +127,12 @@ pub fn build(w: &World, look: &Look, meshes: usize, own_body: bool) -> Batch {
         z: h.rotate(v3(0, 0, ONE)),
     };
     b.solid(Shape::Hull as usize, h.pos, &hf, col("hull"));
-    part(&mut b, h, Shape::Cube, cm(0, 31, -5), cm(62, 4, 150), col("dark"));
-    part(&mut b, h, Shape::Cube, cm(0, 36, -35), cm(50, 8, 50), col("seat"));
-    part(&mut b, h, Shape::Cube, cm(0, 64, -60), cm(50, 50, 7), col("seat"));
-    part(&mut b, h, Shape::Cube, cm(0, 48, 55), cm(10, 42, 10), col("dark"));
-    part(
-        &mut b,
-        h,
-        Shape::Cube,
-        cm(0, 46, -120),
-        cm(40, 30, 36),
-        col("crate"),
-    );
-    part(
-        &mut b,
-        h,
-        Shape::Cube,
-        cm(0, 10, -190),
-        cm(2, 40, 22),
-        col("dark"),
-    );
-    if own_body {
-        angler(&mut b, w, look);
-    }
-    rod_and_line(&mut b, w, look, own_body);
-    for (i, f) in w.fish.iter().enumerate() {
-        fish(&mut b, w, i, f.species);
-    }
-    scenery(&mut b, look);
-    b
+    part(b, h, Shape::Cube, cm(0, 31, -5), cm(62, 4, 150), col("dark"));
+    part(b, h, Shape::Cube, cm(0, 36, -35), cm(50, 8, 50), col("seat"));
+    part(b, h, Shape::Cube, cm(0, 64, -60), cm(50, 50, 7), col("seat"));
+    part(b, h, Shape::Cube, cm(0, 48, 55), cm(10, 42, 10), col("dark"));
+    part(b, h, Shape::Cube, cm(0, 46, -120), cm(40, 30, 36), col("crate"));
+    part(b, h, Shape::Cube, cm(0, 10, -190), cm(2, 40, 22), col("dark"));
 }
 
 fn angler(b: &mut Batch, w: &World, look: &Look) {
@@ -231,15 +282,15 @@ fn rod_and_line(b: &mut Batch, w: &World, look: &Look, own_body: bool) {
     }
 }
 
-fn fish(b: &mut Batch, w: &World, i: usize, species: usize) {
-    let f = &w.fish[i];
+fn fish(b: &mut Batch, w: &World, f: &crate::fish::Fish, i: usize, base: usize) {
+    let species = f.species;
     let spec = &w.place.fish[species];
     let fwd = f.facing();
     let side = fwd.cross(v3(0, ONE, 0)).with_len(ONE);
     let up = side.cross(fwd).with_len(ONE);
     let len = f.length;
     let frame = Frame3::axes(side, up, fwd, v3(len, len, len));
-    b.solid(SHAPES + species, f.pos, &frame, [ONE, ONE, ONE]);
+    b.solid(base + species, f.pos, &frame, [ONE, ONE, ONE]);
     let fin = crate::render::hex(&spec.colours[3]);
     // the tail, swept side to side faster as the fish works harder
     let beat = match f.mood {
@@ -308,16 +359,11 @@ fn fish(b: &mut Batch, w: &World, i: usize, species: usize) {
     }
 }
 
-/// Far sea stacks and low clouds, placed by fixed numbers so they never move.
-fn scenery(b: &mut Batch, look: &Look) {
+/// Far sea stacks and low clouds, placed by the place's fixed numbers so they never move.
+fn scenery(b: &mut Batch, w: &World, look: &Look) {
     let stack = look.colour("stack");
     let top = look.colour("stack_top");
-    for (x, z, s) in [
-        (-320, -520, 35),
-        (-262, -560, 24),
-        (420, -700, 30),
-        (-600, 380, 28),
-    ] {
+    for &[x, z, s] in &w.place.scenery.stacks {
         let s = s * ONE / 10;
         let mut y = -2 * ONE;
         for k in 0..4 {
@@ -340,15 +386,7 @@ fn scenery(b: &mut Batch, look: &Look) {
         );
     }
     let cloud = look.colour("cloud");
-    for (x, y, z, s) in [
-        (-500, 120, -800, 22),
-        (-150, 140, -900, 28),
-        (300, 110, -760, 20),
-        (650, 150, -500, 26),
-        (-760, 130, 200, 24),
-        (200, 160, 800, 30),
-        (900, 120, 300, 18),
-    ] {
+    for &[x, y, z, s] in &w.place.scenery.clouds {
         let s = s * ONE / 10;
         for k in 0..5 {
             let at = v3(
@@ -366,5 +404,136 @@ fn scenery(b: &mut Batch, look: &Look) {
                 ONE / 3,
             );
         }
+    }
+}
+
+/// A whole number from 0 to 999 that looks random but is fixed by `k`:
+/// the banks' sizes come from it, so they are the same every frame.
+fn jitter(k: i32) -> i32 {
+    let mut x = (k as u32).wrapping_mul(2_654_435_761) ^ 0x9e37_79b9;
+    x ^= x >> 15;
+    x = x.wrapping_mul(2_246_822_519);
+    x ^= x >> 13;
+    (x % 1000) as i32
+}
+
+/// The river's banks, bed and rocks, after the river mockup: ledges of rock
+/// in terraces up from each bank with pines along them, a gravel bed, and
+/// boulders standing out of the current. Nothing here is a rule; the banks
+/// that stop the kayak are the river's own (`river.rs`).
+fn river(b: &mut Batch, r: &River, look: &Look) {
+    let rock_a = look.colour("ledge");
+    let rock_b = look.colour("ledge_dark");
+    let pine = look.colour("pine");
+    let trunk = look.colour("trunk");
+    let bed = look.colour("bed");
+    let boulder = look.colour("boulder");
+    let m = |cm: i32| cm * ONE / 100;
+    // terraces: each bank, three steps back from the water and up
+    for side in [-1, 1] {
+        for step in 0..3 {
+            let edge = r.half + m([0, 600, 1500][step]);
+            let depth = m([900, 1300, 2600][step]);
+            let across = side * (edge + depth / 2);
+            let radius = r.radius + across;
+            // blocks about 10 m long round the loop
+            let count = (fx::mul(radius, crate::sea::TAU) / (10 * ONE)).max(12);
+            for i in 0..count {
+                let key = side * 10_000 + step as i32 * 1000 + i;
+                let turns = i * fx::TURN / count + jitter(key) * 20;
+                let at = r.point(turns, across + side * m(jitter(key + 7) / 2));
+                let rise = m([150, 450, 1000][step] + jitter(key + 3) * [1, 3, 6][step]);
+                let bottom = -r.mid_depth - ONE;
+                let tall = rise - bottom;
+                let along = r.along(at);
+                let yaw = crate::geom::yaw_of(along.x, along.z);
+                let long = m(1100 + jitter(key + 11));
+                let size = v3(depth + m(200), tall, long);
+                b.solid(
+                    Shape::Cube as usize,
+                    v3(at.x, bottom + tall / 2, at.z),
+                    &Frame3::turned(yaw, 0, 0, size),
+                    if (i + step as i32) % 3 == 0 {
+                        rock_b
+                    } else {
+                        rock_a
+                    },
+                );
+                // pines on the upper steps
+                if step > 0 && jitter(key + 5) < 450 {
+                    let t = m(500 + jitter(key + 9) * 9);
+                    let off = r.point(turns, across + side * m(jitter(key + 13) / 3 - 150));
+                    b.solid(
+                        Shape::Cyl as usize,
+                        v3(off.x, rise + t / 8, off.z),
+                        &Frame3::upright(v3(m(40), t / 4, m(40))),
+                        trunk,
+                    );
+                    b.solid(
+                        Shape::Cone as usize,
+                        v3(off.x, rise + t * 6 / 10, off.z),
+                        &Frame3::upright(v3(t / 3, t * 8 / 10, t / 3)),
+                        pine,
+                    );
+                }
+            }
+        }
+    }
+    // the bed: nine strips across, in pieces round the loop, each at its
+    // depth; fewer strips showed their steps through clear water as bands
+    let pieces = 72;
+    for strip in 0..9 {
+        let s = (strip * 2 - 8) * ONE / 9;
+        let across = fx::mul(s, r.half);
+        for i in 0..pieces {
+            let turns = i * fx::TURN / pieces;
+            let at = r.point(turns, across);
+            let y = r.channel_bed(at);
+            let along = r.along(at);
+            let yaw = crate::geom::yaw_of(along.x, along.z);
+            let long = fx::mul(r.radius + across, crate::sea::TAU) / pieces + ONE;
+            b.solid(
+                Shape::Cube as usize,
+                v3(at.x, y - ONE / 4, at.z),
+                &Frame3::turned(yaw, 0, 0, v3(r.half * 2 / 9 + ONE / 2, ONE / 2, long)),
+                bed,
+            );
+        }
+    }
+    // the boulders, from the bed to their tops
+    for (i, k) in r.rocks.iter().enumerate() {
+        let bottom = r.channel_bed(k.at).min(-ONE / 2);
+        let tall = k.top - bottom;
+        b.solid(
+            Shape::Rock as usize,
+            v3(k.at.x, bottom + tall / 2, k.at.z),
+            &Frame3::turned(i as i32 * 9_973, 0, 0, v3(k.r * 2, tall, k.r * 2)),
+            boulder,
+        );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mesh::SHAPES;
+    use crate::session::tests::session;
+
+    #[test]
+    fn the_scope_sees_through_the_kayak() {
+        // from the angler's eye a fish under the boat would be hidden by the
+        // hull, so the scope's view draws no hull (T9)
+        let s = session(1);
+        let n = s.meshes().len();
+        let view = |own_body: bool| View {
+            meshes: n,
+            own_body,
+            fish_base: SHAPES,
+            shown: None,
+        };
+        let seen = build(&s.world, &s.look, &view(true));
+        let scoped = build(&s.world, &s.look, &view(false));
+        assert_eq!(seen.count_of(Shape::Hull as usize, Pass::Solid), 1);
+        assert_eq!(scoped.count_of(Shape::Hull as usize, Pass::Solid), 0);
     }
 }

@@ -12,6 +12,7 @@
 
 pub mod arms;
 pub mod fish;
+pub mod flowmap;
 pub mod fx;
 pub mod geom;
 pub mod glossary;
@@ -20,6 +21,7 @@ pub mod line;
 pub mod look;
 pub mod mesh;
 pub mod render;
+pub mod river;
 pub mod rng;
 pub mod scene;
 pub mod sea;

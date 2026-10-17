@@ -17,33 +17,25 @@ use crate::ticks::TICKS_PER_SECOND;
 
 /// The key bits the page sends; `data/controls.json` maps keys to their names.
 pub mod bits {
-    pub const LEFT_SHOULDER_UP: u32 = 1;
-    pub const LEFT_SHOULDER_DOWN: u32 = 1 << 1;
-    pub const LEFT_ELBOW_BEND: u32 = 1 << 2;
-    pub const LEFT_ELBOW_STRAIGHTEN: u32 = 1 << 3;
-    pub const RIGHT_SHOULDER_UP: u32 = 1 << 4;
-    pub const RIGHT_SHOULDER_DOWN: u32 = 1 << 5;
-    pub const RIGHT_ELBOW_BEND: u32 = 1 << 6;
-    pub const RIGHT_ELBOW_STRAIGHTEN: u32 = 1 << 7;
-    pub const FINGER: u32 = 1 << 8;
-    pub const WIND: u32 = 1 << 9;
-    pub const PEDAL: u32 = 1 << 10;
-    pub const BACK_PEDAL: u32 = 1 << 11;
-    pub const DRIFT_LEFT: u32 = 1 << 12;
-    pub const DRIFT_RIGHT: u32 = 1 << 13;
-    pub const SCOPE: u32 = 1 << 14;
-    pub const POWER_WIND: u32 = 1 << 15;
-    /// The eight keys that move the arms.
-    pub const ARMS: u32 = 0xff;
-    pub const NAMES: [(&str, u32); 16] = [
-        ("left_shoulder_up", LEFT_SHOULDER_UP),
-        ("left_shoulder_down", LEFT_SHOULDER_DOWN),
-        ("left_elbow_bend", LEFT_ELBOW_BEND),
-        ("left_elbow_straighten", LEFT_ELBOW_STRAIGHTEN),
-        ("right_shoulder_up", RIGHT_SHOULDER_UP),
-        ("right_shoulder_down", RIGHT_SHOULDER_DOWN),
-        ("right_elbow_bend", RIGHT_ELBOW_BEND),
-        ("right_elbow_straighten", RIGHT_ELBOW_STRAIGHTEN),
+    pub const SHOULDER_UP: u32 = 1;
+    pub const SHOULDER_DOWN: u32 = 1 << 1;
+    pub const ELBOW_BEND: u32 = 1 << 2;
+    pub const ELBOW_STRAIGHTEN: u32 = 1 << 3;
+    pub const FINGER: u32 = 1 << 4;
+    pub const WIND: u32 = 1 << 5;
+    pub const PEDAL: u32 = 1 << 6;
+    pub const BACK_PEDAL: u32 = 1 << 7;
+    pub const DRIFT_LEFT: u32 = 1 << 8;
+    pub const DRIFT_RIGHT: u32 = 1 << 9;
+    pub const SCOPE: u32 = 1 << 10;
+    pub const POWER_WIND: u32 = 1 << 11;
+    /// The four keys that move the casting arm (T12: one arm casts).
+    pub const ARMS: u32 = 0xf;
+    pub const NAMES: [(&str, u32); 12] = [
+        ("shoulder_up", SHOULDER_UP),
+        ("shoulder_down", SHOULDER_DOWN),
+        ("elbow_bend", ELBOW_BEND),
+        ("elbow_straighten", ELBOW_STRAIGHTEN),
         ("finger", FINGER),
         ("wind", WIND),
         ("pedal", PEDAL),
@@ -55,6 +47,30 @@ pub mod bits {
     ];
 }
 
+/// The reel's electric motor: it pulls in jerks and runs from a battery
+/// that recharges while it rests (T15).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PowerSpec {
+    /// Each jerk pulls for `on_ms`, then rests for `off_ms`.
+    pub on_ms: i32,
+    pub off_ms: i32,
+    /// Seconds of running a full battery gives, and seconds to refill an empty one.
+    pub battery_s: i32,
+    pub recharge_s: i32,
+}
+
+/// A boat to take out: its hull, and whether it is fished from. The
+/// speedboat is driven, not fished from (the person's boat racing mode).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BoatSpec {
+    /// The key of its name in the strings file.
+    pub name: String,
+    pub fishing: bool,
+    pub hull: HullSpec,
+}
+
 /// The angler's gear, from `data/gear.json`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -62,9 +78,10 @@ pub struct GearSpec {
     /// A note for people; the core does not read it.
     #[serde(default, rename = "_note")]
     pub note: String,
-    pub hull: HullSpec,
+    pub boats: Vec<BoatSpec>,
     pub arms: ArmSpec,
     pub line: LineSpec,
+    pub power: PowerSpec,
     /// A hook set: the tension rising this much (tenths of N) within this long (ms).
     pub hook_set_dn: i32,
     pub hook_set_ms: i32,
@@ -73,7 +90,7 @@ pub struct GearSpec {
     pub land_line_cm: i32,
 }
 
-/// A place, from `data/place.json`.
+/// A place, one of the list in `data/places.json`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PlaceSpec {
@@ -84,6 +101,17 @@ pub struct PlaceSpec {
     pub sea: SeaSpec,
     pub start_heading_deg: i32,
     pub fish: Vec<FishSpec>,
+    #[serde(default)]
+    pub scenery: ScenerySpec,
+}
+
+/// What a place shows far off, placed by fixed numbers: sea stacks (x, z,
+/// size in tenths) and clouds (x, y, z, size in tenths), in metres.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
+pub struct ScenerySpec {
+    pub stacks: Vec<[i32; 3]>,
+    pub clouds: Vec<[i32; 4]>,
 }
 
 /// Something the HUD reports.
@@ -115,6 +143,8 @@ pub struct Catch {
 pub struct World {
     pub gear: GearSpec,
     pub place: PlaceSpec,
+    /// Which of the gear's boats this is.
+    pub boat: usize,
     pub sea: Sea,
     pub hull: Hull,
     pub arms: Arms,
@@ -136,16 +166,24 @@ pub struct World {
     pub lure_vel: V3,
     /// Where and when the lure last struck the water, for the rings the page draws.
     pub last_splash: Option<(V3, u64)>,
+    /// The motor's battery, ONE full.
+    pub battery: Fx,
+    /// Ticks E has been held with charge left; the jerks count from it.
+    power_ticks: i32,
+    /// True on a tick the motor pulled.
+    pub pulling: bool,
 }
 
 impl World {
-    pub fn new(gear: GearSpec, place: PlaceSpec, seed: u64) -> World {
+    pub fn new(gear: GearSpec, place: PlaceSpec, boat: usize, seed: u64) -> World {
         let sea = Sea::new(&place.sea);
         let heading = place.start_heading_deg * fx::TURN / 360;
-        let mut hull = Hull::new(gear.hull.clone(), V3::ZERO, heading);
+        let boat = boat.min(gear.boats.len().saturating_sub(1));
+        let spec = gear.boats[boat].hull.clone();
+        let mut hull = Hull::new(spec.clone(), V3::ZERO, heading);
         hull.pos.y = -fx::div(
             hull.mass(),
-            fx::mul(sea.density, gear.hull.probe_area_cm2 * ONE / 10_000) * 16,
+            fx::mul(sea.density, spec.probe_area_cm2 * ONE / 10_000) * 16,
         );
         let arms = Arms::new(gear.arms.clone());
         let tip = hull.to_world(arms.rod().tip);
@@ -158,9 +196,10 @@ impl World {
             }
         }
         let n = gear.hook_set_ms * TICKS_PER_SECOND as i32 / 1000;
-        World {
+        let mut w = World {
             gear,
             place,
+            boat,
             sea,
             hull,
             arms,
@@ -178,7 +217,19 @@ impl World {
             prev_end: tip,
             lure_vel: V3::ZERO,
             last_splash: None,
+            battery: ONE,
+            power_ticks: 0,
+            pulling: false,
+        };
+        for i in 0..w.fish.len() {
+            w.settle(i);
         }
+        w
+    }
+
+    /// True when this boat is fished from.
+    pub fn fishing(&self) -> bool {
+        self.gear.boats[self.boat].fishing
     }
 
     pub fn tip(&self) -> V3 {
@@ -202,26 +253,48 @@ impl World {
             return;
         }
         self.tick += 1;
+        // from a boat that is not fished from, the arm and reel keys do nothing
+        let keys = if self.fishing() {
+            keys
+        } else {
+            keys & !(bits::ARMS | bits::FINGER | bits::WIND | bits::POWER_WIND)
+        };
         let on = |b: u32| keys & b != 0;
         let both = |up: u32, down: u32| on(up) as i32 - on(down) as i32;
         use bits::*;
         let arm_input = ArmInput {
+            // the left hand rests on the reel; the right arm casts (T12)
             drive: [
-                both(LEFT_SHOULDER_UP, LEFT_SHOULDER_DOWN),
-                both(LEFT_ELBOW_BEND, LEFT_ELBOW_STRAIGHTEN),
-                both(RIGHT_SHOULDER_UP, RIGHT_SHOULDER_DOWN),
-                both(RIGHT_ELBOW_BEND, RIGHT_ELBOW_STRAIGHTEN),
+                0,
+                0,
+                both(SHOULDER_UP, SHOULDER_DOWN),
+                both(ELBOW_BEND, ELBOW_STRAIGHTEN),
             ],
         };
         let hull_input = HullInput {
             pedal: both(PEDAL, BACK_PEDAL),
             drift: both(DRIFT_RIGHT, DRIFT_LEFT),
         };
+        // the motor: jerks of `on_ms` with rests of `off_ms` between, while the
+        // battery lasts; a fish on the line is fair game (T15)
+        let p = &self.gear.power;
+        let per_s = TICKS_PER_SECOND as i32;
+        // a motor that ran flat starts again only with a tenth of a charge
+        let can_run = self.battery > 0 && (self.power_ticks > 0 || self.battery >= ONE / 10);
+        let running = on(POWER_WIND) && can_run;
+        self.power_ticks = if running { self.power_ticks + 1 } else { 0 };
+        let on_ticks = (p.on_ms * per_s / 1000).max(1);
+        let period = on_ticks + (p.off_ms * per_s / 1000).max(0);
+        self.pulling = running && (self.power_ticks - 1) % period < on_ticks;
+        self.battery = if running {
+            (self.battery - ONE / (p.battery_s.max(1) * per_s)).max(0)
+        } else {
+            (self.battery + ONE / (p.recharge_s.max(1) * per_s)).min(ONE)
+        };
         let line_input = LineInput {
             finger: on(FINGER),
             wind: on(WIND),
-            // the motor is for bringing a lure back, not for a fish (T7)
-            power: on(POWER_WIND) && self.holder.is_none(),
+            power: self.pulling,
         };
         self.sea.tick();
         self.arms.tick(arm_input);
@@ -230,7 +303,7 @@ impl World {
         let end = match self.holder {
             Some(i) => {
                 let f = &self.fish[i];
-                let scene = self.scene(false);
+                let scene = self.around(i, self.scene(false));
                 let spec = self.place.fish[f.species].clone();
                 let (said, force) = self.fish[i].pull(&spec, &scene, &mut self.rng);
                 self.say(i, said);
@@ -294,7 +367,9 @@ impl World {
                 continue;
             }
             let spec = self.place.fish[self.fish[i].species].clone();
-            let said = self.fish[i].tick(&spec, &scene, &mut self.rng);
+            let here = self.around(i, scene);
+            let said = self.fish[i].tick(&spec, &here, &mut self.rng);
+            self.keep_in_water(i);
             self.say(i, said);
             if said == Some(Happened::Bit) && self.holder.is_none() {
                 self.holder = Some(i);
@@ -307,6 +382,7 @@ impl World {
                 let s = self.fish[i].species;
                 let surface = self.sea.level();
                 self.fish[i] = Fish::spawn(s, &self.place.fish[s], self.hull.pos, surface, &mut self.rng);
+                self.settle(i);
             }
         }
         if scene.splash {
@@ -325,12 +401,58 @@ impl World {
             lure_vel: self.lure_vel,
             lure_wet: wet,
             splash: with_splash && wet && !self.lure_was_wet,
-            water: self.sea.water_velocity(),
+            water: self.sea.current_at(e.x, e.z),
+            here: V3::ZERO,
+            hold: None,
             surface: self.sea.level(),
-            seabed: -self.sea.depth,
+            seabed: self.sea.bed_at(e.x, e.z),
             kayak: self.angler(),
             tension: self.line.tension,
         }
+    }
+
+    /// What fish `i` sees: the shared scene, with the current and the bottom
+    /// where it swims, and its eddy if it holds behind a rock.
+    fn around(&self, i: usize, scene: Scene) -> Scene {
+        let p = self.fish[i].pos;
+        Scene {
+            here: self.sea.current_at(p.x, p.z),
+            seabed: self.sea.bed_at(p.x, p.z),
+            hold: self.hold_for(i),
+            ..scene
+        }
+    }
+
+    /// The slack water behind a rock that fish `i` holds in: two of the
+    /// rock's radii downstream of its middle. Fish spread over the rocks.
+    fn hold_for(&self, i: usize) -> Option<V3> {
+        let f = &self.fish[i];
+        if !self.place.fish[f.species].holds_by_rocks {
+            return None;
+        }
+        let rocks = &self.sea.river.as_ref()?.rocks;
+        if rocks.is_empty() {
+            return None;
+        }
+        let k = &rocks[(i * 5 + 3) % rocks.len()];
+        Some(k.at.add(k.flow.scale(k.r * 2)))
+    }
+
+    /// Keeps fish `i` in the water: off the banks, out of the rocks.
+    fn keep_in_water(&mut self, i: usize) {
+        let push = self.sea.push_out(self.fish[i].pos, ONE * 3 / 10);
+        self.fish[i].pos = self.fish[i].pos.add(push);
+    }
+
+    /// A fish just spawned starts at its eddy, or in the water.
+    fn settle(&mut self, i: usize) {
+        if let Some(h) = self.hold_for(i) {
+            let y = self.fish[i].pos.y.max(self.sea.bed_at(h.x, h.z) + ONE / 3);
+            self.fish[i].pos = v3(h.x, y, h.z);
+        }
+        self.keep_in_water(i);
+        let p = self.fish[i].pos;
+        self.fish[i].pos.y = p.y.max(self.sea.bed_at(p.x, p.z) + ONE / 3);
     }
 
     fn say(&mut self, i: usize, said: Option<Happened>) {
@@ -377,6 +499,7 @@ impl World {
             let s = self.fish[i].species;
             let surface = self.sea.level();
             self.fish[i] = Fish::spawn(s, &self.place.fish[s], self.hull.pos, surface, &mut self.rng);
+            self.settle(i);
         }
         self.catches.push(c);
         self.reset_line();
@@ -421,8 +544,112 @@ pub mod tests {
 
     pub fn world(seed: u64) -> World {
         let gear: GearSpec = serde_json::from_str(include_str!("../../../data/gear.json")).unwrap();
-        let place: PlaceSpec = serde_json::from_str(include_str!("../../../data/place.json")).unwrap();
-        World::new(gear, place, seed)
+        let places: Vec<PlaceSpec> = serde_json::from_str(include_str!("../../../data/places.json")).unwrap();
+        World::new(gear, places[0].clone(), 0, seed)
+    }
+
+    /// A world at place `place` (0 the Open Swell, 1 the Ledge River) in boat
+    /// `boat` (0 the kayak, 1 the speedboat).
+    pub fn world_at(place: usize, boat: usize, seed: u64) -> World {
+        let gear: GearSpec = serde_json::from_str(include_str!("../../../data/gear.json")).unwrap();
+        let places: Vec<PlaceSpec> = serde_json::from_str(include_str!("../../../data/places.json")).unwrap();
+        World::new(gear, places[place].clone(), boat, seed)
+    }
+
+    #[test]
+    fn a_kayak_left_alone_drifts_down_the_river_and_stays_off_the_banks() {
+        let mut w = world_at(1, 0, 1);
+        let r = w.sea.river.clone().unwrap();
+        let start = w.hull.pos;
+        for t in 0..3600 {
+            w.step(0);
+            let s = r.across(w.hull.pos).abs();
+            assert!(s < ONE, "on the bank at tick {t}: {s}");
+        }
+        // 1.23 m/s mid-channel for a minute is 74 m; a kayak gathering speed
+        // and slowing by the rocks goes less, but well past 20 m
+        let gone = w.hull.pos.sub(start).flat_len();
+        assert!(gone > 20 * ONE, "drifted {gone}");
+        assert!(w.hull.pos.z < start.z, "downstream is toward -z at the start");
+    }
+
+    #[test]
+    fn a_kayak_pedalled_at_the_bank_stops_at_it() {
+        let mut w = world_at(1, 0, 1);
+        let r = w.sea.river.clone().unwrap();
+        // turn to face the outer bank (+x), then pedal at it for half a minute
+        w.hull.heading = fx::TURN / 4;
+        for _ in 0..1800 {
+            w.step(bits::PEDAL);
+            assert!(r.across(w.hull.pos) < ONE);
+        }
+        // the middle stops half a beam (0.43 m) and 0.2 m short of the 20 m
+        // bank, and the bow 0.2 m short: across ends near (20 − 1.95 − 0.2) / 20
+        let s = r.across(w.hull.pos);
+        assert!(s > ONE * 85 / 100, "stopped at {s}");
+    }
+
+    #[test]
+    fn trout_hold_in_the_slack_water_behind_their_rocks() {
+        let mut w = world_at(1, 0, 2);
+        for _ in 0..1800 {
+            w.step(0);
+        }
+        let mut held = 0;
+        for i in 0..w.fish.len() {
+            if let (Some(h), Mood::Cruise) = (w.hold_for(i), w.fish[i].mood) {
+                if w.fish[i].pos.sub(h).flat_len() < 3 * ONE {
+                    held += 1;
+                }
+            }
+        }
+        // eighteen rainbow trout in data/places.json; one may be off
+        // following a lure or fleeing the kayak
+        assert!(held >= 16, "{held} of 18 trout at their rocks");
+    }
+
+    #[test]
+    fn the_speedboat_planes_past_fifteen_metres_a_second() {
+        // 5200 N against 16 N per (m/s)² gives √(5200/16) = 18.0 m/s with the
+        // whole hull in the water. Planing, part of the hull is out and drags
+        // less, so it runs faster, but not past √(5200/16 × 16/8) = 25.5 with
+        // half the sixteen probes wet
+        let mut w = world_at(0, 1, 1);
+        for _ in 0..900 {
+            w.step(bits::PEDAL);
+        }
+        let v = w.hull.speed();
+        assert!(v > 15 * ONE && v < 51 * ONE / 2, "speed {v}");
+    }
+
+    #[test]
+    fn the_speedboat_leaves_the_water_off_the_swell() {
+        let mut w = world_at(0, 1, 1);
+        let mut air = 0;
+        for _ in 0..3600 {
+            w.step(bits::PEDAL);
+            let dry = w.hull.probes().iter().all(|p| {
+                let q = w.hull.to_world(*p);
+                q.y > w.sea.height(q.x, q.z)
+            });
+            if dry {
+                air += 1;
+            }
+        }
+        assert!(air > 0, "never left the water in a minute at full throttle");
+    }
+
+    #[test]
+    fn the_speedboat_is_not_fished_from() {
+        let mut w = world_at(0, 1, 1);
+        let arms = w.arms.angle;
+        let out = w.line.out;
+        for _ in 0..60 {
+            w.step(bits::SHOULDER_UP | bits::FINGER | bits::POWER_WIND);
+        }
+        assert_eq!(w.arms.angle, arms);
+        assert_eq!(w.line.out, out);
+        assert_eq!(w.battery, ONE);
     }
 
     /// A minute of scripted play: pedal, drift, swing the rod, let line go, wind.
@@ -431,8 +658,8 @@ pub mod tests {
         match t % 600 {
             0..=59 => PEDAL,
             60..=89 => DRIFT_LEFT | FINGER,
-            90..=119 => RIGHT_SHOULDER_UP | FINGER,
-            120..=135 => RIGHT_SHOULDER_DOWN | FINGER,
+            90..=119 => SHOULDER_UP | FINGER,
+            120..=135 => SHOULDER_DOWN | FINGER,
             136..=299 => 0,
             _ => WIND,
         }
@@ -475,7 +702,7 @@ pub mod tests {
                 "key bit {key} moved the rod"
             );
         }
-        for (name, key) in bits::NAMES.iter().take(8) {
+        for (name, key) in bits::NAMES.iter().take(4) {
             let mut w = world(1);
             let before = w.arms.angle;
             for _ in 0..20 {
@@ -483,7 +710,34 @@ pub mod tests {
             }
             assert_ne!(w.arms.angle, before, "{name} did not move its joint");
         }
-        assert_eq!(bits::ARMS, bits::NAMES.iter().take(8).fold(0, |a, (_, b)| a | b));
+        assert_eq!(bits::ARMS, bits::NAMES.iter().take(4).fold(0, |a, (_, b)| a | b));
+    }
+
+    #[test]
+    fn a_cast_pays_out_no_more_line_than_the_lure_has_gone() {
+        // cast, then leave the bail open for ten seconds on the swell: the
+        // line out may exceed the tip-to-lure distance by the 20% allowance
+        // in data/gear.json (free_slack_pct), and by no more (T10)
+        use bits::*;
+        let mut w = world(1);
+        for t in 0..660u32 {
+            let k = match t {
+                0..=28 => FINGER | SHOULDER_UP,
+                29..=37 => FINGER | SHOULDER_DOWN,
+                38..=51 => SHOULDER_DOWN,
+                _ => 0,
+            };
+            w.step(k);
+        }
+        assert!(w.line.bail_open);
+        let straight = w.line.end().sub(w.tip()).len();
+        assert!(straight > 2 * ONE, "the lure went out: {straight}");
+        assert!(
+            w.line.out <= straight * 12 / 10 + ONE / 10,
+            "line out {} for a lure {} away",
+            w.line.out,
+            straight
+        );
     }
 
     /// A world where fish 0 holds the lure at the end of a short line.
@@ -509,7 +763,7 @@ pub mod tests {
         let mut w = held(Mood::Hold);
         // sweep the rod up hard: the tip leaps, the line jerks taut
         for _ in 0..15 {
-            w.step(bits::RIGHT_SHOULDER_UP | bits::LEFT_SHOULDER_UP);
+            w.step(bits::SHOULDER_UP);
         }
         assert_eq!(w.fish[0].mood, Mood::Hooked, "tension {}", w.line.tension);
     }
@@ -518,29 +772,73 @@ pub mod tests {
     fn a_hook_set_with_no_fish_holding_the_lure_does_nothing() {
         let mut w = held(Mood::Cruise);
         for _ in 0..15 {
-            w.step(bits::RIGHT_SHOULDER_UP | bits::LEFT_SHOULDER_UP);
+            w.step(bits::SHOULDER_UP);
         }
         assert!(w.fish.iter().all(|f| f.mood != Mood::Hooked));
         assert_eq!(w.holder, None);
     }
 
     #[test]
-    fn the_power_wind_brings_a_lure_in_fast_and_not_a_fish() {
-        // 6 m/s for half a second: 3 m of line, from 10 m out
+    fn the_power_wind_jerks_line_in() {
+        // jerks of 150 ms (9 ticks) with 100 ms (6 ticks) rests: half a second
+        // is two whole jerks, 18 ticks pulling at 7 m/s, so 0.3 s × 7 = 2.1 m
         let mut w = held(Mood::Cruise);
         w.line.out = 10 * ONE;
+        let mut pulls = Vec::new();
         for _ in 0..30 {
             w.step(bits::POWER_WIND);
+            pulls.push(w.pulling);
         }
         let wound = 10 * ONE - w.line.out;
-        assert!((wound - 3 * ONE).abs() < ONE / 10, "wound {wound}");
-        // with a fish holding the lure the motor does nothing
-        let mut w = held(Mood::Hold);
-        w.line.out = 10 * ONE;
+        assert!((wound - 21 * ONE / 10).abs() < ONE / 10, "wound {wound}");
+        assert_eq!(pulls.iter().filter(|p| **p).count(), 18);
+        assert!(pulls[0] && !pulls[9] && pulls[15], "{pulls:?}");
+    }
+
+    #[test]
+    fn the_battery_runs_eight_seconds_and_refills_in_forty_five() {
+        let mut w = held(Mood::Cruise);
+        w.line.out = 100 * ONE;
+        // 8 s of running is 480 ticks
+        for _ in 0..470 {
+            w.step(bits::POWER_WIND);
+        }
+        assert!(w.battery > 0, "charge left at 470 ticks");
+        for _ in 0..20 {
+            w.step(bits::POWER_WIND);
+        }
+        // flat at 480 ticks; the ten ticks since put a little back, which is
+        // under the tenth the motor needs to start again
+        assert!(w.battery < ONE / 100, "battery {}", w.battery);
+        let out = w.line.out;
         for _ in 0..30 {
             w.step(bits::POWER_WIND);
         }
-        assert!(w.line.out >= 10 * ONE - ONE / 100, "out {}", w.line.out);
+        assert_eq!(w.line.out, out, "a flat battery winds nothing");
+        // half the recharge, 22.5 s, brings back about half
+        for _ in 0..1350 {
+            w.step(0);
+        }
+        assert!((w.battery - ONE / 2).abs() < ONE / 50, "battery {}", w.battery);
+    }
+
+    #[test]
+    fn a_power_wind_hauls_a_spent_fish_in_to_be_landed() {
+        // a tired fish 6 m out: the motor's jerks lift it to the angler (T15)
+        let mut w = held(Mood::Hold);
+        w.fish[0].mood = Mood::Hooked;
+        w.fish[0].stamina = 0;
+        w.line.out = 6 * ONE;
+        let mut landed = None;
+        for t in 0..300 {
+            w.step(bits::POWER_WIND);
+            assert!(!w.events.contains(&Event::Snapped), "snapped at {t}");
+            if w.landed.is_some() {
+                landed = Some(t);
+                break;
+            }
+        }
+        assert!(landed.is_some(), "line out {}", w.line.out);
     }
 
     #[test]

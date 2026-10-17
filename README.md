@@ -1,17 +1,22 @@
 # Extremely Lifelike Fishing
 
-A 3D fishing game for the desktop browser. You sit in a pedal-drive kayak on the open sea and fish with your own two arms: each shoulder and each elbow has its own pair of keys, so a cast takes practice, as in QWOP. The line is a chain of simulated points with weight, drag and stretch; it snaps above its breaking tension. A fish bites only when the hook is inside its mouth zone, and a scope over one eye lets you see it happen. The sea moves the kayak with real swell, tide and current.
+A 3D fishing game for the desktop browser. You sit in a pedal-drive kayak and fish with one arm whose shoulder and elbow each have their own pair of keys, so a cast takes practice, as in QWOP. The line is a chain of simulated points with weight, drag and stretch; it snaps above its breaking tension. A fish bites only when the hook is inside its mouth zone, and a scope over one eye lets you see it happen. The water moves the kayak with real swell, tide and current.
 
-Play it at `sgilson7.github.io/el-fishing`. This first version has one place, the Open Swell.
+Play it at `sgilson7.github.io/el-fishing`. There are two places, the Open Swell and the Ledge River, a river that loops round so its current never ends, and two craft: the kayak to fish from and a speedboat to drive.
 
 ## How to fish
 
-- Cast: hold F, swing the rod back with I, swing it forward with K, and let go of F as the rod passes upright.
+- Cast: hold F, swing the rod back with W, swing it forward with S, and let go of F as the rod passes upright. A and D bend and straighten the elbow.
 - Watch Lure depth: let the lure sink to the depth your fish swims at (the title screen lists each species' depth and the lure speed it likes), then press Space to close the bail and wind. Wind in bursts and pause; a following fish often bites as the lure stops.
-- Hold E for the electric power wind: it brings the lure back fast while no fish has it, and a mahi-mahi may chase it.
-- When a fish bites, sweep the rod up fast (I, with Q for the other arm): that is the hook set.
-- Keep the line tight. Wind while the fish rests; the drag gives line when it runs.
-- Arrow keys pedal and drift. Hold the right mouse button for the scope: it looks at the mouth of the fish nearest the lure, and the wheel zooms. Esc opens the settings, where slower arms and steady hands make casting easier.
+- Hold E for the power wind: it pulls line in short bursts and runs on a battery that refills while it rests.
+- When a fish bites, wind with Space and sweep the rod up with W together: that is the hook set.
+- Keep the line tight. The cue under the message says Wind or Hold; when it says Haul, the fish is tired and close, and the power wind lifts it into your hands.
+- On the river, trout hold in the eddies behind the rocks, facing upstream.
+- Arrow keys pedal and drift. Hold the right mouse button for the scope: it looks at the mouth of the fish nearest the lure, through the kayak if need be, and the wheel zooms. Esc opens the settings and the fish log.
+
+## The speedboat
+
+Choose it on the title. Up and Down are the throttle, Left and Right steer. It planes as it gathers speed, slides in hard turns and leaves the water off the swell.
 
 ## How it is built
 

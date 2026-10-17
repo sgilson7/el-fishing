@@ -49,13 +49,28 @@ export function makeRenderer(canvas, N, shaders, game) {
     if (setter === N.matrix) gl[setter](loc, false, values);
     else gl[setter](loc, values);
   };
-  // the constants, once
-  const constants = game.constants();
-  let at = 0;
-  for (const [prog, name, size, setter] of N.constants) {
-    gl.useProgram(programs[prog]);
-    set(prog, name, setter, constants.subarray(at, at + size));
-    at += size;
+  // the constants and the flow map: again whenever the core's generation
+  // changes (another place or boat); the core says when, not the page
+  const flowTexture = gl.createTexture();
+  let generation = null;
+  function setup() {
+    const constants = game.constants();
+    let at = 0;
+    for (const [prog, name, size, setter] of N.constants) {
+      gl.useProgram(programs[prog]);
+      set(prog, name, setter, constants.subarray(at, at + size));
+      at += size;
+    }
+    const [w, h] = game.flow_size();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, flowTexture);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, game.flow_map());
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    generation = game.generation();
   }
 
   // the shapes' meshes, each with its own vertex array
@@ -151,6 +166,7 @@ export function makeRenderer(canvas, N, shaders, game) {
       gl.viewport(0, 0, width, height);
     },
     draw() {
+      if (game.generation() !== generation) setup();
       gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
       gl.bufferData(gl.ARRAY_BUFFER, game.values(), gl.STREAM_DRAW);
       const u = game.uniforms();

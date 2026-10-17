@@ -16,6 +16,12 @@ The wire arm on the reel. Open, it lets line run off freely, as in a cast; close
 
 Not: latch, gate
 
+### Battery
+
+The charge that runs the power wind. A full battery runs it for {battery.seconds} s, and an empty one refills in {battery.recharge} s while the power wind rests.
+
+Not: fuel, energy
+
 ### Bite
 
 The moment a fish closes its mouth on the bait. A bite counts only while the hook is inside the fish's mouth zone.
@@ -45,6 +51,18 @@ Not: friction, brake
 Turning the kayak by swinging the stern while the bow holds its place, so the angler can face a new spot without leaving it.
 
 Not: spin, pivot
+
+### Eddy
+
+Slack water behind a rock in a current, where the flow slows and turns back on itself. Trout hold in eddies and wait for food to drift past.
+
+Not: whirlpool, vortex
+
+### Haul
+
+Bringing a tired fish in fast with the power wind, so it comes out of the water and into the angler's hands.
+
+Not: yank, fling
 
 ### Hook set
 
@@ -84,7 +102,7 @@ Not: paddle, motor, engine
 
 ### Power wind
 
-An electric motor on the reel that brings the line in at {reel.power_wind}, much faster than winding by hand. It runs only while no fish has the lure.
+An electric drive on the reel that pulls line in short bursts at {reel.power_wind}, much faster than winding by hand. It runs on the battery, with or without a fish on.
 
 Not: turbo, boost
 
@@ -96,7 +114,7 @@ Not: winch, spool
 
 ### Rod
 
-The long, bending pole the angler holds in both hands. Its tip bends under the line's tension, and that bend is a cue the player reads.
+The long, bending pole the angler holds in the casting hand. Its tip bends under the line's tension, and that bend is a cue the player reads.
 
 Not: pole, stick
 
@@ -105,6 +123,12 @@ Not: pole, stick
 The zoom lens strapped over one of the angler's eyes. It magnifies the view up to {scope.max_zoom} times and never changes a rule.
 
 Not: binoculars, telescope, spyglass
+
+### Speedboat
+
+A fast planing craft driven with the same keys as the kayak. It rides up on its hull at speed and leaves the water off a swell.
+
+Not: jetski, hovercraft
 
 ### Strike
 

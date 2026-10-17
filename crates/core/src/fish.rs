@@ -48,6 +48,10 @@ pub struct FishSpec {
     /// Body depth and width as a share of length, percent.
     pub depth_pct: i32,
     pub width_pct: i32,
+    /// Holds in the slack water behind a rock, facing the current, instead
+    /// of wandering (a river trout's habit).
+    #[serde(default)]
+    pub holds_by_rocks: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -95,7 +99,12 @@ pub struct Scene {
     pub lure_wet: bool,
     /// A splash this tick (the lure landing), at the lure.
     pub splash: bool,
+    /// The current at the lure.
     pub water: V3,
+    /// The current where this fish is.
+    pub here: V3,
+    /// The slack water this fish holds in, if it holds behind a rock.
+    pub hold: Option<V3>,
     pub surface: Fx,
     pub seabed: Fx,
     pub kayak: V3,
@@ -218,6 +227,32 @@ impl Fish {
         let depth_hi = s.surface - cm(spec.depth_cm[0]);
         let mut said = None;
         match self.mood {
+            Mood::Cruise if s.hold.is_some() => {
+                // hold in the eddy, nosing about it a little, facing upstream
+                let hold = s.hold.unwrap_or(self.pos);
+                if self.timer % 180 == 1 {
+                    let y = depth_lo + fx::mul(depth_hi - depth_lo, rng.below(ONE as u32) as i32);
+                    let jx = rng.between(-40, 40) * ONE / 100;
+                    let jz = rng.between(-40, 40) * ONE / 100;
+                    self.goal = v3(hold.x + jx, y.max(s.seabed + ONE / 3), hold.z + jz);
+                }
+                let gap = self.goal.sub(self.pos);
+                let want = if gap.len() > ONE {
+                    gap.with_len(cruise)
+                } else {
+                    gap
+                };
+                self.steer(spec, want);
+                if gap.len() < ONE && s.here.flat_len() > ONE / 20 {
+                    self.heading = geom::yaw_of(-s.here.x, -s.here.z);
+                }
+                let heard = s.splash && lure_dist < cm(spec.splash_cm);
+                if s.lure_wet && ((lure_dist < cm(spec.sense_cm) && liked) || heard) {
+                    self.mood(Mood::Follow);
+                    self.interest = if heard { 30 * ONE } else { 0 };
+                    said = Some(Happened::Noticed);
+                }
+            }
             Mood::Cruise => {
                 if self.timer % 180 == 1 || self.goal.sub(self.pos).len() < ONE {
                     // a new place to wander to, within 40 m of the kayak
@@ -412,6 +447,7 @@ pub mod tests {
             pattern: "none".into(),
             depth_pct: 30,
             width_pct: 11,
+            holds_by_rocks: false,
         }
     }
 
@@ -431,6 +467,8 @@ pub mod tests {
             lure_wet: true,
             splash: false,
             water: V3::ZERO,
+            here: V3::ZERO,
+            hold: None,
             surface: 0,
             seabed: -18 * ONE,
             kayak: v3(0, 0, -30 * ONE),

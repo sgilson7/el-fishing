@@ -6,6 +6,7 @@
 use serde_json::{json, Value};
 
 use crate::fish::Mood;
+use crate::flowmap::{self, FlowMap};
 use crate::fx::{self, Fx, ONE};
 use crate::geom::{v3, V3};
 use crate::glossary;
@@ -24,6 +25,7 @@ pub enum Screen {
     Fishing,
     Landed,
     Settings,
+    Log,
 }
 
 impl Screen {
@@ -33,6 +35,7 @@ impl Screen {
             Screen::Fishing => "fishing",
             Screen::Landed => "landed",
             Screen::Settings => "settings",
+            Screen::Log => "log",
         }
     }
 }
@@ -60,9 +63,37 @@ pub fn frame_layout(waves: usize) -> Vec<(Program, &'static str, usize)> {
     ]
 }
 
+/// A landed fish, kept in the visit's fish log (T11). The log lasts the
+/// visit: Builder keeps nothing in the browser's storage.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Logged {
+    pub place: usize,
+    pub species: usize,
+    pub length: Fx,
+    pub mass: Fx,
+}
+
 pub struct Session {
     pub world: World,
+    /// The look at this place from this boat.
     pub look: Look,
+    /// The look as `data/look.json` gives it, before a place changes it.
+    base_look: Look,
+    places: Vec<PlaceSpec>,
+    gear: GearSpec,
+    seed: u64,
+    /// Which place and which boat the world is.
+    pub place: usize,
+    pub boat: usize,
+    /// Counts up each time the world is rebuilt for another place or boat,
+    /// so the page knows to send the GPU the new constants and flow map.
+    pub generation: u32,
+    /// The mesh number of each place's first species.
+    fish_base: Vec<usize>,
+    pub log: Vec<Logged>,
+    /// Display frames since a fish was landed, to turn it in the angler's hands.
+    shown: i32,
+    flow: FlowMap,
     pub strings: Strings,
     glossary_md: String,
     pub screen: Screen,
@@ -106,26 +137,53 @@ impl Session {
     pub fn new(
         strings: &str,
         gear: &str,
-        place: &str,
+        places: &str,
         look: &str,
         glossary_md: &str,
         seed: u64,
     ) -> Result<Session, String> {
         let strings = Strings::parse(strings)?;
         let gear: GearSpec = serde_json::from_str(gear).map_err(|e| format!("data/gear.json: {e}"))?;
-        let place: PlaceSpec = serde_json::from_str(place).map_err(|e| format!("data/place.json: {e}"))?;
-        let look: Look = serde_json::from_str(look).map_err(|e| format!("data/look.json: {e}"))?;
+        let places: Vec<PlaceSpec> =
+            serde_json::from_str(places).map_err(|e| format!("data/places.json: {e}"))?;
+        let base_look: Look = serde_json::from_str(look).map_err(|e| format!("data/look.json: {e}"))?;
         glossary::parse(glossary_md).map_err(|e| e.message())?;
-        for f in &place.fish {
-            if !strings.has(&f.name) {
-                return Err(format!("The strings file has no \"{}\".", f.name));
+        if places.is_empty() || gear.boats.is_empty() {
+            return Err("There must be at least one place and one boat.".into());
+        }
+        // the shaders are compiled once for one wave count
+        let waves = places[0].sea.waves.len();
+        let mut names: Vec<&str> = Vec::new();
+        for p in &places {
+            if p.sea.waves.len() != waves {
+                return Err(format!(
+                    "data/places.json: {} has {} waves; every place needs {waves}.",
+                    p.name,
+                    p.sea.waves.len()
+                ));
+            }
+            names.push(&p.name);
+            names.extend(p.fish.iter().map(|f| f.name.as_str()));
+            for b in &gear.boats {
+                base_look.at(&p.name, &b.name)?;
+            }
+        }
+        names.extend(gear.boats.iter().map(|b| b.name.as_str()));
+        for n in names {
+            if !strings.has(n) {
+                return Err(format!("The strings file has no \"{n}\"."));
             }
         }
         let mut meshes: Vec<Vec<i32>> = (0..SHAPES).map(|i| mesh::shape(shape_of(i))).collect();
-        for f in &place.fish {
-            meshes.push(mesh::fish_body(f));
+        let mut fish_base = Vec::new();
+        for p in &places {
+            fish_base.push(meshes.len());
+            for f in &p.fish {
+                meshes.push(mesh::fish_body(f));
+            }
         }
-        let world = World::new(gear, place, seed);
+        let world = World::new(gear.clone(), places[0].clone(), 0, seed);
+        let look = base_look.at(&places[0].name, &gear.boats[0].name)?;
         let camera = Camera {
             eye: v3(0, 3 * ONE, 6 * ONE),
             at: V3::ZERO,
@@ -135,6 +193,23 @@ impl Session {
             world,
             scope_zoom: look.camera.scope_start_zoom,
             look,
+            base_look,
+            places,
+            gear,
+            seed,
+            place: 0,
+            boat: 0,
+            generation: 0,
+            fish_base,
+            log: Vec::new(),
+            shown: 0,
+            flow: FlowMap {
+                width: 1,
+                height: 1,
+                bytes: vec![128, 128, 0, 255],
+                corner: (0, 0),
+                size: (ONE, ONE),
+            },
             strings,
             glossary_md: glossary_md.to_string(),
             screen: Screen::Title,
@@ -148,9 +223,49 @@ impl Session {
             message: None,
             meshes,
         };
+        s.flow = s.build_flow();
         s.place_camera(true);
         s.build_frame();
         Ok(s)
+    }
+
+    /// Builds the world afresh at the chosen place in the chosen boat.
+    fn enter(&mut self) {
+        let place = self.places[self.place].clone();
+        let boat = self.gear.boats[self.boat].name.clone();
+        // checked for every place and boat when the session was made
+        if let Ok(l) = self.base_look.at(&place.name, &boat) {
+            self.look = l;
+        }
+        let seed = self.seed.wrapping_add(self.generation as u64 + 1);
+        self.world = World::new(self.gear.clone(), place, self.boat, seed);
+        self.flow = self.build_flow();
+        self.generation += 1;
+        self.message = None;
+        self.scope_zoom = self.look.camera.scope_start_zoom;
+        self.place_camera(true);
+    }
+
+    fn build_flow(&self) -> FlowMap {
+        let range = Look::number(&self.look.water, "uFlowK", 0);
+        flowmap::build(&self.world.sea, range)
+    }
+
+    /// The flow map's size in texels, and its bytes, for the water shader.
+    pub fn flow_size(&self) -> Vec<i32> {
+        vec![self.flow.width as i32, self.flow.height as i32]
+    }
+
+    pub fn flow_map(&self) -> &[u8] {
+        &self.flow.bytes
+    }
+
+    /// A choice from a list by its number.
+    fn pick(v: &str, of: usize) -> Result<usize, String> {
+        match v.parse::<usize>() {
+            Ok(i) if i < of => Ok(i),
+            _ => Err(format!("There is no choice \"{v}\".")),
+        }
     }
 
     pub fn meshes(&self) -> &[Vec<i32>] {
@@ -166,7 +281,7 @@ impl Session {
     }
 
     fn scoping(&self) -> bool {
-        self.screen == Screen::Fishing && self.keys & bits::SCOPE != 0
+        self.screen == Screen::Fishing && self.keys & bits::SCOPE != 0 && self.world.fishing()
     }
 
     /// One display frame: the ticks it owes, then the camera and the draw.
@@ -181,9 +296,13 @@ impl Session {
                 }
                 if self.world.landed.is_some() {
                     self.screen = Screen::Landed;
+                    self.shown = 0;
                     break;
                 }
             }
+        }
+        if self.screen == Screen::Landed {
+            self.shown += 1;
         }
         let want = if self.scoping() { ONE } else { 0 };
         self.clarity += (want - self.clarity) / 6;
@@ -208,7 +327,7 @@ impl Session {
         let w = &self.world;
         let e = w.line.end();
         let depth = (w.sea.height(e.x, e.z) - e.y).max(0);
-        (depth, w.lure_vel.sub(w.sea.water_velocity()).len())
+        (depth, w.lure_vel.sub(w.sea.current_at(e.x, e.z)).len())
     }
 
     fn fish_name(&self, i: usize) -> String {
@@ -240,27 +359,35 @@ impl Session {
     pub fn act(&mut self, name: &str, value: &str) -> Result<(), String> {
         match (name, value) {
             ("screen.show", "fishing") => {
-                self.world.finish_catch(false);
+                self.finish(false);
                 self.screen = Screen::Fishing;
             }
             ("screen.show", "settings") => self.screen = Screen::Settings,
             ("screen.show", "title") => self.screen = Screen::Title,
+            ("screen.show", "log") => self.screen = Screen::Log,
             ("screen.show", other) => return Err(format!("There is no screen \"{other}\".")),
+            ("place.choose", v) => {
+                self.place = Session::pick(v, self.places.len())?;
+                self.enter();
+            }
+            ("boat.choose", v) => {
+                self.boat = Session::pick(v, self.gear.boats.len())?;
+                self.enter();
+            }
             ("catch.release", _) | ("catch.keep", _) => {
                 if self.screen != Screen::Landed {
                     return Err("There is no landed fish.".into());
                 }
-                self.world.finish_catch(name == "catch.keep");
+                self.finish(name == "catch.keep");
                 self.screen = Screen::Fishing;
                 self.message = None;
             }
             ("settings.arm_speed", v) => self.world.arms.slow = v == "slow",
-            ("settings.steady_hands", v) => self.world.arms.steady = level(v)?,
             ("settings.steady_hull", v) => self.world.hull.steady = level(v)?,
             ("menu.toggle", _) => {
                 self.screen = match self.screen {
                     Screen::Fishing => Screen::Settings,
-                    Screen::Settings => Screen::Fishing,
+                    Screen::Settings | Screen::Log => Screen::Fishing,
                     s => s,
                 }
             }
@@ -275,10 +402,45 @@ impl Session {
         Ok(())
     }
 
+    /// Lets the landed fish go or keeps it, and writes it in the fish log.
+    fn finish(&mut self, keep: bool) {
+        if let Some(c) = &self.world.landed {
+            self.log.push(Logged {
+                place: self.place,
+                species: c.species,
+                length: c.length,
+                mass: c.mass,
+            });
+        }
+        self.world.finish_catch(keep);
+    }
+
+    /// Where a landed fish is held up to be looked at, in hull space, and
+    /// the way it faces as it turns (T11).
+    fn shown_fish(&self) -> Option<(usize, V3, i32)> {
+        if self.screen != Screen::Landed {
+            return None;
+        }
+        let i = self.world.holder?;
+        let at = self.world.hull.to_world(v3(0, ONE * 105 / 100, ONE * 60 / 100));
+        let turn = self.shown * fx::TURN / (6 * TICKS_PER_SECOND as i32);
+        Some((i, at, self.world.hull.heading + turn))
+    }
+
     fn place_camera(&mut self, snap: bool) {
         let c = &self.look.camera;
         let h = &self.world.hull;
         let cm = |v: i32| v * ONE / 100;
+        if let Some((_, at, _)) = self.shown_fish() {
+            // a close look at the fish held up in the angler's hands
+            let eye = h.to_world(v3(ONE * 70 / 100, ONE * 135 / 100, ONE * 185 / 100));
+            self.camera = Camera {
+                eye,
+                at,
+                focal: c.focal_x1000 * ONE / 1000,
+            };
+            return;
+        }
         if self.scoping() {
             // the angler's right eye, looking at the mouth of the fish nearest
             // the lure, or at the lure when no fish is near (T6)
@@ -328,7 +490,13 @@ impl Session {
         let world = &self.world;
         let mut out = FrameOut::default();
         out.plain(Program::Sky, 0);
-        let batch = scene::build(world, &self.look, self.meshes.len(), !self.scoping());
+        let view = scene::View {
+            meshes: self.meshes.len(),
+            own_body: !self.scoping(),
+            fish_base: self.fish_base[self.place],
+            shown: self.shown_fish(),
+        };
+        let batch = scene::build(world, &self.look, &view);
         batch.emit(Pass::Solid, &mut out);
         out.plain(Program::Water, 0);
         batch.emit(Pass::Glow, &mut out);
@@ -354,7 +522,11 @@ impl Session {
         let tick = world.tick as i64;
         u.push(((tick % (600 * TICKS_PER_SECOND)) * ONE as i64 / TICKS_PER_SECOND) as i32);
         let hl = &world.hull;
-        let wake = fx::div(hl.speed(), ONE * 3 / 2).min(ONE);
+        // the wake shows the hull's speed through the water, not over the
+        // ground, so a kayak drifting with a river leaves none (T14)
+        let through = hl.vel.sub(world.sea.current_at(hl.pos.x, hl.pos.z)).flat_len();
+        let full = self.look.wake_full_cm_s.max(1) * ONE / 100;
+        let wake = fx::div(through, full).min(ONE);
         u.extend_from_slice(&[hl.pos.x, hl.pos.z, hl.heading, wake]);
         let ring = match world.last_splash {
             Some((at, t)) if world.tick - t < 4 * TICKS_PER_SECOND as u64 => [
@@ -412,6 +584,15 @@ impl Session {
             Program::Water,
             ("uGrid".into(), vec![l.grid_radius_m * ONE, 4 * ONE / cells]),
         ));
+        // the box the flow map covers: its corner and its size, metres
+        let f = &self.flow;
+        out.push((
+            Program::Water,
+            (
+                "uFlowBox".into(),
+                vec![f.corner.0, f.corner.1, f.size.0, f.size.1],
+            ),
+        ));
         out
     }
 
@@ -468,6 +649,8 @@ impl Session {
                 "{tide.period_minutes}",
                 &w.place.sea.tide_period_minutes.to_string(),
             )
+            .replace("{battery.seconds}", &w.gear.power.battery_s.to_string())
+            .replace("{battery.recharge}", &w.gear.power.recharge_s.to_string())
         };
         glossary::parse(&self.glossary_md)
             .map(|es| {
@@ -499,36 +682,58 @@ impl Session {
                 ("period", decimal(w.sea.peak_period(), 0)),
             ],
         );
-        vec![
-            json!([
-                s.get("row.tide"),
-                s.fill(tide_key, &[("height", decimal(w.sea.level(), 2))])
-            ]),
-            json!([s.get("row.current"), knots(w.sea.water_velocity().flat_len())]),
-            json!([s.get("row.wind"), knots(w.sea.wind.flat_len())]),
-            json!([s.get("row.swell"), swell]),
-            json!([
+        let tide = if w.sea.tide_amp == 0 {
+            s.get("tide.none")
+        } else {
+            s.fill(tide_key, &[("height", decimal(w.sea.level(), 2))])
+        };
+        let mut rows = Vec::new();
+        if !w.fishing() {
+            // km/h: m/s × 3.6
+            rows.push(json!([
+                s.get("row.speed"),
+                s.fill(
+                    "value.kmh",
+                    &[("kmh", decimal(fx::mul(w.hull.speed(), ONE * 36 / 10), 0))]
+                )
+            ]));
+        }
+        rows.push(json!([s.get("row.tide"), tide]));
+        rows.push(json!([
+            s.get("row.current"),
+            knots(w.sea.current_at(w.hull.pos.x, w.hull.pos.z).flat_len())
+        ]));
+        rows.push(json!([s.get("row.wind"), knots(w.sea.wind.flat_len())]));
+        if w.sea.river.is_none() {
+            rows.push(json!([s.get("row.swell"), swell]));
+        }
+        if w.fishing() {
+            rows.push(json!([
                 s.get("row.line_out"),
                 s.fill("value.metres", &[("metres", decimal(w.line.out, 1))])
-            ]),
-            json!([
+            ]));
+            rows.push(json!([
                 s.get("row.lure_depth"),
                 s.fill(
                     "value.metres",
                     &[("metres", decimal(self.lure_depth_and_speed().0, 1))]
                 )
-            ]),
-            json!([
+            ]));
+            rows.push(json!([
                 s.get("row.drag"),
                 s.fill("value.newtons", &[("newtons", decimal(w.line.drag(), 1))])
-            ]),
-        ]
+            ]));
+        }
+        rows
     }
 
     /// The coaching line when nothing has happened lately.
     fn hint(&self) -> String {
         let w = &self.world;
         let s = &self.strings;
+        if !w.fishing() {
+            return s.get("hint.drive");
+        }
         if let Some(i) = w.holder {
             let f = &w.fish[i];
             return match f.mood {
@@ -562,6 +767,13 @@ impl Session {
 
     fn keys_bar(&self) -> Vec<Value> {
         let s = &self.strings;
+        if !self.world.fishing() {
+            return vec![
+                json!(["↑ ↓", s.get("key.throttle")]),
+                json!(["← →", s.get("key.steer")]),
+                json!(["Esc", s.get("key.menu")]),
+            ];
+        }
         vec![
             json!(["↑ ↓", s.get("key.pedal")]),
             json!(["← →", s.get("key.drift")]),
@@ -578,12 +790,11 @@ impl Session {
         let k = |label: &str, b: u32| json!({"key": label, "on": held(b)});
         json!({
             "heading": s.get("arms.heading"),
-            "left": s.get("arms.left"),
-            "right": s.get("arms.right"),
             "rows": [
-                [s.get("arms.shoulder"), [k("Q", bits::LEFT_SHOULDER_UP), k("A", bits::LEFT_SHOULDER_DOWN)], [k("I", bits::RIGHT_SHOULDER_UP), k("K", bits::RIGHT_SHOULDER_DOWN)]],
-                [s.get("arms.elbow"), [k("W", bits::LEFT_ELBOW_BEND), k("S", bits::LEFT_ELBOW_STRAIGHTEN)], [k("O", bits::RIGHT_ELBOW_BEND), k("L", bits::RIGHT_ELBOW_STRAIGHTEN)]],
-                [s.get("arms.line"), [k("F", bits::FINGER), {"note": s.get("arms.finger")}], [k("Space", bits::WIND), {"note": s.get("arms.wind")}]],
+                [s.get("arms.shoulder"), [k("W", bits::SHOULDER_UP), k("S", bits::SHOULDER_DOWN)]],
+                [s.get("arms.elbow"), [k("A", bits::ELBOW_BEND), k("D", bits::ELBOW_STRAIGHTEN)]],
+                [s.get("arms.line"), [k("F", bits::FINGER), {"note": s.get("arms.finger")}]],
+                [s.get("arms.reel"), [k("Space", bits::WIND), {"note": s.get("arms.wind")}]],
             ],
         })
     }
@@ -591,9 +802,11 @@ impl Session {
     fn tension(&self) -> Value {
         let w = &self.world;
         let frac = fx::div(w.line.tension, w.line.break_tension().max(1)).clamp(0, ONE);
+        // the same split as the fight cue: calm well under the drag,
+        // strained near it or slipping, danger near the break (T13)
         let state = if frac > ONE * 3 / 4 {
             "danger"
-        } else if frac > ONE / 2 {
+        } else if w.line.slipping || w.line.tension >= w.line.drag() * 3 / 4 {
             "strained"
         } else {
             "calm"
@@ -640,72 +853,201 @@ impl Session {
         out
     }
 
+    /// The fight cue (T13): wind while the pull is well under the drag,
+    /// hold while it is near or over it, and power-wind a tired fish that is
+    /// close; `None` with no fish hooked.
+    fn cue(&self) -> Option<(&'static str, String)> {
+        let w = &self.world;
+        let i = w.holder?;
+        let f = &w.fish[i];
+        if f.mood != Mood::Hooked {
+            return None;
+        }
+        let s = &self.strings;
+        let near = f.pos.sub(w.angler()).flat_len() < 10 * ONE;
+        if f.stamina < ONE / 4 && near && w.battery >= ONE / 10 {
+            return Some(("haul", s.get("cue.haul")));
+        }
+        if w.line.slipping || w.line.tension >= w.line.drag() * 3 / 4 {
+            return Some(("hold", s.get("cue.hold")));
+        }
+        Some(("wind", s.get("cue.wind")))
+    }
+
+    fn battery(&self) -> Value {
+        let w = &self.world;
+        let state = if w.pulling {
+            "running"
+        } else if w.battery < ONE / 10 {
+            "flat"
+        } else if w.battery >= ONE {
+            "full"
+        } else {
+            "charging"
+        };
+        json!({
+            "fraction": decimal(w.battery, 3),
+            "percent": decimal(w.battery * 100, 0),
+            "state": state,
+            "label": self.strings.fill("battery.label", &[("percent", decimal(w.battery * 100, 0))]),
+            "status": self.strings.get(&format!("battery.{state}")),
+        })
+    }
+
+    /// A size word for a fish of this length among its kind: the quarter of
+    /// the species' length range it falls in.
+    fn size_word(&self, place: usize, species: usize, length: Fx) -> String {
+        let spec = &self.places[place].fish[species];
+        let lo = spec.length_cm[0] * ONE / 100;
+        let hi = (spec.length_cm[1] * ONE / 100).max(lo + 1);
+        let q = (fx::div(length - lo, hi - lo) * 4 / ONE).clamp(0, 3);
+        self.strings
+            .get(["size.small", "size.average", "size.large", "size.trophy"][q as usize])
+    }
+
+    /// One row a species, for every place: caught, how many and the
+    /// biggest; or not yet, with how big they grow (T11).
+    fn log_rows(&self) -> Vec<Value> {
+        let s = &self.strings;
+        let mut rows = Vec::new();
+        for (pi, p) in self.places.iter().enumerate() {
+            for (si, f) in p.fish.iter().enumerate() {
+                let mine: Vec<&Logged> = self
+                    .log
+                    .iter()
+                    .filter(|l| l.place == pi && l.species == si)
+                    .collect();
+                let name = s.fill("log.name", &[("fish", s.get(&f.name)), ("place", s.get(&p.name))]);
+                let value = match mine.iter().max_by_key(|l| l.length) {
+                    Some(best) => s.fill(
+                        "log.caught",
+                        &[
+                            ("count", mine.len().to_string()),
+                            ("cm", decimal(best.length * 100, 0)),
+                            ("kg", decimal(best.mass, 1)),
+                        ],
+                    ),
+                    None => s.fill(
+                        "log.not_yet",
+                        &[
+                            ("from", f.length_cm[0].to_string()),
+                            ("to", f.length_cm[1].to_string()),
+                        ],
+                    ),
+                };
+                rows.push(json!([name, value]));
+            }
+        }
+        rows
+    }
+
+    /// The title card: the place and boat to choose, and the way in.
+    fn title_panels(&self) -> Vec<Value> {
+        let s = &self.strings;
+        let w = &self.world;
+        let chips = |name: &str, labels: Vec<String>, at: usize| -> Value {
+            json!({"name": name, "options": labels.iter().enumerate().map(|(i, l)| json!({"value": i.to_string(), "label": l, "on": i == at})).collect::<Vec<_>>()})
+        };
+        let places = self.places.iter().map(|p| s.get(&p.name)).collect();
+        let boats = self.gear.boats.iter().map(|b| s.get(&b.name)).collect();
+        let start = if w.fishing() { "start.fish" } else { "start.drive" };
+        let mut out = vec![json!({
+            "id": "title-card",
+            "heading": s.get("title"),
+            "text": s.get("intro"),
+            "choices": [
+                [s.get("choose.place"), chips("place.choose", places, self.place)],
+                [s.get("choose.boat"), chips("boat.choose", boats, self.boat)],
+            ],
+            "actions": [
+                {"name": "screen.show", "value": "fishing", "label": s.fill(start, &[("place", s.get(&w.place.name))]), "primary": true},
+                {"name": "screen.show", "value": "log", "label": s.get("log.open"), "primary": false},
+            ],
+        })];
+        let how: Vec<String> = if w.fishing() {
+            // one line a species, from its data: where it swims and the lure speed it likes
+            let species = w.place.fish.iter().map(|f| {
+                s.fill(
+                    "how.species",
+                    &[
+                        ("fish", s.get(&f.name)),
+                        ("from", plain(f.depth_cm[0], 100)),
+                        ("to", plain(f.depth_cm[1], 100)),
+                        ("slow", plain(f.lure_speed_mm_s[0], 1000)),
+                        ("fast", plain(f.lure_speed_mm_s[1], 1000)),
+                    ],
+                )
+            });
+            let hold = w.place.fish.iter().map(|f| f.hold_ms).min().unwrap_or(0);
+            let p = &w.gear.power;
+            let fill = |k: &str| {
+                s.fill(
+                    k,
+                    &[
+                        ("power", decimal(w.gear.line.power_wind_cm_s * ONE / 100, 0)),
+                        ("battery", p.battery_s.to_string()),
+                        ("recharge", p.recharge_s.to_string()),
+                        ("hold", decimal(hold * ONE / 1000, 0)),
+                        ("zoom", self.look.camera.scope_max_zoom.to_string()),
+                    ],
+                )
+            };
+            let mut how: Vec<String> = ["how.cast", "how.sink"].iter().map(|k| fill(k)).collect();
+            how.extend(species);
+            how.extend(
+                [
+                    "how.work",
+                    "how.follow",
+                    "how.set",
+                    "how.fight",
+                    "how.haul",
+                    "how.scope",
+                ]
+                .iter()
+                .map(|k| fill(k)),
+            );
+            if w.sea.river.is_some() {
+                how.push(s.get("how.river"));
+            }
+            how
+        } else {
+            ["how.throttle", "how.steer", "how.jump"]
+                .iter()
+                .map(|k| s.get(k))
+                .collect()
+        };
+        out.push(json!({"id": "how", "heading": s.get("heading.controls"), "list": how}));
+        out
+    }
+
     /// Everything the page draws as HTML.
     pub fn ui(&self) -> Value {
         let s = &self.strings;
         let w = &self.world;
         let mut panels: Vec<Value> = Vec::new();
         match self.screen {
-            Screen::Title => {
-                panels.push(json!({
-                    "id": "title-card",
-                    "heading": s.get("title"),
-                    "text": s.get("intro"),
-                    "actions": [{"name": "screen.show", "value": "fishing", "label": s.get("start"), "primary": true}],
-                }));
-                // one line a species, from its data: where it swims and the lure speed it likes
-                let w = &self.world;
-                let species: Vec<String> = w
-                    .place
-                    .fish
-                    .iter()
-                    .map(|f| {
-                        s.fill(
-                            "how.species",
-                            &[
-                                ("fish", s.get(&f.name)),
-                                ("from", plain(f.depth_cm[0], 100)),
-                                ("to", plain(f.depth_cm[1], 100)),
-                                ("slow", plain(f.lure_speed_mm_s[0], 1000)),
-                                ("fast", plain(f.lure_speed_mm_s[1], 1000)),
-                            ],
-                        )
-                    })
-                    .collect();
-                let hold = w.place.fish.iter().map(|f| f.hold_ms).min().unwrap_or(0);
-                let fill = |k: &str| {
-                    s.fill(
-                        k,
-                        &[
-                            ("power", decimal(w.gear.line.power_wind_cm_s * ONE / 100, 0)),
-                            ("hold", decimal(hold * ONE / 1000, 0)),
-                            ("zoom", self.look.camera.scope_max_zoom.to_string()),
-                        ],
-                    )
-                };
-                let mut how: Vec<String> = ["how.cast", "how.sink"].iter().map(|k| fill(k)).collect();
-                how.extend(species);
-                how.extend(
-                    ["how.work", "how.follow", "how.set", "how.fight", "how.scope"]
-                        .iter()
-                        .map(|k| fill(k)),
-                );
-                panels.push(json!({
-                    "id": "how",
-                    "heading": s.get("heading.controls"),
-                    "list": how,
-                }));
-            }
+            Screen::Title => panels.extend(self.title_panels()),
             Screen::Fishing => {
+                let when = format!("{}.when", w.place.name);
                 panels.push(json!({
                     "id": "place",
-                    "eyebrow": format!("{} · {}", s.get(&w.place.name), s.get("place.when")),
+                    "eyebrow": format!("{} · {}", s.get(&w.place.name), s.get(&when)),
                     "rows": self.place_rows(),
                 }));
             }
             Screen::Landed => {
                 if let Some(c) = &w.landed {
                     let spec = &w.place.fish[c.species];
+                    let before = self
+                        .log
+                        .iter()
+                        .filter(|l| l.place == self.place && l.species == c.species)
+                        .map(|l| l.length)
+                        .max();
+                    let best = match before {
+                        Some(b) if b >= c.length => s.fill("landed.best_was", &[("cm", decimal(b * 100, 0))]),
+                        _ => s.get("landed.new_best"),
+                    };
                     panels.push(json!({
                         "id": "landed",
                         "eyebrow": s.get("landed.heading"),
@@ -713,8 +1055,10 @@ impl Session {
                         "rows": [
                             [s.get("landed.length"), s.fill("value.cm", &[("cm", decimal(c.length * 100, 0))])],
                             [s.get("landed.weight"), s.fill("value.kg", &[("kg", decimal(c.mass, 1))])],
+                            [s.get("landed.size"), self.size_word(self.place, c.species, c.length)],
+                            [s.get("landed.best"), best],
                             [s.get("landed.fight"), s.fill("value.seconds", &[("seconds", (c.fight_ticks / TICKS_PER_SECOND as u32).to_string())])],
-                            [s.get("landed.caught"), s.fill("value.count", &[("count", (w.catches.len() + 1).to_string())])],
+                            [s.get("landed.caught"), s.fill("value.count", &[("count", (self.log.len() + 1).to_string())])],
                         ],
                         "actions": [
                             {"name": "catch.release", "value": "", "label": s.get("release"), "primary": true},
@@ -734,32 +1078,68 @@ impl Session {
                     "text": s.get("settings.note"),
                     "choices": [
                         [s.get("settings.arm_speed"), choice("settings.arm_speed", &[("normal", "settings.normal"), ("slow", "settings.slow")], if w.arms.slow { "slow" } else { "normal" })],
-                        [s.get("settings.steady_hands"), choice("settings.steady_hands", &[("off", "settings.off"), ("some", "settings.some"), ("more", "settings.more")], lv(w.arms.steady))],
                         [s.get("settings.steady_hull"), choice("settings.steady_hull", &[("off", "settings.off"), ("some", "settings.some"), ("more", "settings.more")], lv(w.hull.steady))],
                     ],
-                    "actions": [{"name": "menu.toggle", "value": "", "label": s.get("resume"), "primary": true}],
+                    "actions": [
+                        {"name": "menu.toggle", "value": "", "label": s.get("resume"), "primary": true},
+                        {"name": "screen.show", "value": "log", "label": s.get("log.open"), "primary": false},
+                        {"name": "screen.show", "value": "title", "label": s.get("change.place"), "primary": false},
+                    ],
+                }));
+            }
+            Screen::Log => {
+                let total = self.places.iter().map(|p| p.fish.len()).sum::<usize>();
+                let caught = self
+                    .places
+                    .iter()
+                    .enumerate()
+                    .flat_map(|(pi, p)| (0..p.fish.len()).map(move |si| (pi, si)))
+                    .filter(|(pi, si)| self.log.iter().any(|l| l.place == *pi && l.species == *si))
+                    .count();
+                panels.push(json!({
+                    "id": "log",
+                    "heading": s.get("log.heading"),
+                    "text": s.fill("log.note", &[("caught", caught.to_string()), ("total", total.to_string())]),
+                    "rows": self.log_rows(),
+                    "actions": [
+                        {"name": "screen.show", "value": "fishing", "label": s.get("resume"), "primary": true},
+                        {"name": "screen.show", "value": "title", "label": s.get("change.place"), "primary": false},
+                    ],
                 }));
             }
         }
-        let fishing = matches!(self.screen, Screen::Fishing | Screen::Settings);
+        let on_water = matches!(self.screen, Screen::Fishing | Screen::Settings);
+        let fishing = on_water && w.fishing();
+        let cue = self.cue();
         json!({
             "screen": self.screen.name(),
             "title": s.get("title"),
             "panels": panels,
-            "hud": fishing,
-            "message": if fishing { self.message_now() } else { String::new() },
+            "hud": on_water,
+            "fishing": fishing,
+            "message": if on_water { self.message_now() } else { String::new() },
             "tension": self.tension(),
+            "cue": match &cue {
+                Some((state, text)) if fishing => json!({"state": state, "text": text}),
+                _ => json!(null),
+            },
+            "battery": self.battery(),
             "keys": self.keys_bar(),
             "arms": self.arm_panel(),
-            "arms_open": w.catches.is_empty(),
+            "arms_open": self.log.is_empty() && w.catches.is_empty(),
             "scope": self.scope(),
             "hints": self.hints(),
             "data": {
                 "out": decimal(w.line.out, 2),
                 "bail": if w.line.bail_open { "open" } else { "closed" },
                 "hooked": w.holder.map(|i| w.fish[i].mood == Mood::Hooked).unwrap_or(false),
-                "catches": w.catches.len(),
+                "catches": self.log.len(),
                 "tick": w.tick,
+                "place": self.place,
+                "boat": self.boat,
+                "battery": decimal(w.battery * 100, 0),
+                "speed": decimal(fx::mul(w.hull.speed(), ONE * 36 / 10), 0),
+                "generation": self.generation,
             },
         })
     }
@@ -806,7 +1186,7 @@ pub mod tests {
         Session::new(
             include_str!("../../../data/strings.json"),
             include_str!("../../../data/gear.json"),
-            include_str!("../../../data/place.json"),
+            include_str!("../../../data/places.json"),
             include_str!("../../../data/look.json"),
             include_str!("../../../GLOSSARY.md"),
             seed,
@@ -825,8 +1205,8 @@ pub mod tests {
     fn the_scope_changes_no_rule() {
         let script = |f: u32| match f % 600 {
             0..=59 => bits::PEDAL,
-            60..=89 => bits::RIGHT_SHOULDER_UP | bits::FINGER,
-            90..=105 => bits::RIGHT_SHOULDER_DOWN | bits::FINGER,
+            60..=89 => bits::SHOULDER_UP | bits::FINGER,
+            90..=105 => bits::SHOULDER_DOWN | bits::FINGER,
             300..=599 => bits::WIND,
             _ => 0,
         };
@@ -859,7 +1239,8 @@ pub mod tests {
     fn numbers_name_a_mesh_for_every_shape_and_species() {
         let s = session(1);
         let n = s.numbers();
-        assert_eq!(n["meshes"].as_array().unwrap().len(), SHAPES + 2);
+        // two species at the Open Swell and two on the Ledge River
+        assert_eq!(n["meshes"].as_array().unwrap().len(), SHAPES + 4);
         let frame: usize = n["frame"]
             .as_array()
             .unwrap()
@@ -871,6 +1252,89 @@ pub mod tests {
             s.frame_uniforms().len(),
             "the frame's uniforms match their layout"
         );
+    }
+
+    #[test]
+    fn choosing_a_place_and_a_craft_rebuilds_the_world() {
+        let mut s = session(1);
+        assert_eq!((s.place, s.boat, s.generation), (0, 0, 0));
+        s.act("place.choose", "1").unwrap();
+        assert!(s.world.sea.river.is_some());
+        assert_eq!(s.generation, 1);
+        s.act("boat.choose", "1").unwrap();
+        assert!(!s.world.fishing());
+        assert_eq!(s.generation, 2);
+        assert_eq!(
+            s.act("place.choose", "2"),
+            Err("There is no choice \"2\".".into())
+        );
+        s.act("screen.show", "fishing").unwrap();
+        let ui = s.ui();
+        assert_eq!(ui["panels"][0]["eyebrow"], "Ledge River · midday");
+        assert_eq!(ui["panels"][0]["rows"][0][0], "Speed");
+        assert_eq!(ui["fishing"], false);
+    }
+
+    /// A session fishing, with fish 0 hooked on a short line beside the kayak.
+    fn hooked(stamina: Fx) -> Session {
+        let mut s = session(3);
+        s.act("screen.show", "fishing").unwrap();
+        for f in 0..60 {
+            s.frame(f * 16_667, 0);
+        }
+        let w = &mut s.world;
+        let e = w.line.end();
+        let f = &mut w.fish[0];
+        f.pos = e.sub(f.facing().scale(f.length / 2));
+        f.vel = V3::ZERO;
+        f.mood = Mood::Hooked;
+        f.stamina = stamina;
+        w.holder = Some(0);
+        s
+    }
+
+    #[test]
+    fn the_fight_cue_says_wind_hold_or_haul() {
+        let mut s = hooked(ONE);
+        s.world.line.tension = 0;
+        assert_eq!(s.cue().map(|c| c.0), Some("wind"));
+        // three quarters of the 10 N drag is 7.5 N
+        s.world.line.tension = 8 * ONE;
+        assert_eq!(s.cue().map(|c| c.0), Some("hold"));
+        s.world.fish[0].stamina = ONE / 5;
+        assert_eq!(s.cue().map(|c| c.0), Some("haul"));
+        s.world.holder = None;
+        assert_eq!(s.cue(), None);
+    }
+
+    #[test]
+    fn a_landed_fish_is_shown_and_written_in_the_log() {
+        let mut s = hooked(0);
+        let mut f = 60;
+        while s.screen != Screen::Landed && f < 600 {
+            s.frame(f * 16_667, bits::POWER_WIND);
+            f += 1;
+        }
+        assert_eq!(s.screen, Screen::Landed);
+        assert!(s.shown_fish().is_some(), "the fish is held up to be looked at");
+        let rows = &s.ui()["panels"][0]["rows"];
+        assert_eq!(rows[3][1], "this one", "the first of its kind is the best");
+        s.act("catch.release", "").unwrap();
+        assert_eq!(s.log.len(), 1);
+        s.act("screen.show", "log").unwrap();
+        let ui = s.ui();
+        // four kinds in data/places.json, one caught
+        assert_eq!(
+            ui["panels"][0]["text"],
+            "1 of 4 kinds caught this visit. The log is kept until you close the page."
+        );
+        let caught = ui["panels"][0]["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|r| r[1].as_str().unwrap().starts_with("1 caught"))
+            .count();
+        assert_eq!(caught, 1);
     }
 
     #[test]

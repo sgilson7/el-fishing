@@ -14,6 +14,7 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 STRINGS = json.loads((ROOT / "data" / "strings.json").read_text())
 GEAR = json.loads((ROOT / "data" / "gear.json").read_text())
+PLACES = json.loads((ROOT / "data" / "places.json").read_text())
 
 
 def ticks(page):
@@ -33,8 +34,9 @@ def hold(page, keys, n):
 def run(page, check, engine):
     check(page.get_attribute("body", "data-screen") == "title", "the core's title screen is shown first")
     check(page.inner_text("#title-card h2") == STRINGS["title"], "the title from data/strings.json is drawn")
-    # seven how-to lines and one for each of the two species in data/place.json
-    check(page.locator("#how li").count() == 9, "the how-to lines and one line for each species are listed")
+    # eight how-to lines and one for each of the Open Swell's two species in data/places.json
+    check(page.locator("#how li").count() == 8 + len(PLACES[0]["fish"]), "the how-to lines and one line for each species are listed")
+    check(page.locator("#title-card .chip").count() == len(PLACES) + len(GEAR["boats"]), "a chip for each place and each craft")
 
     page.click("#title-card .btn.go")
     page.wait_for_selector("body[data-screen='fishing']")
@@ -52,14 +54,15 @@ def run(page, check, engine):
     check(page.is_visible("#ring"), "the tension ring is shown")
     check(page.is_visible("#arms"), "the arm-key panel is open before the first catch")
 
-    # a cast: finger on the line, rod back with I, forward with K, let go of F
+    # a cast with the one casting arm: finger on the line, rod back with W,
+    # forward with S, let go of F (T12)
     page.keyboard.down("f")
-    hold(page, ["i"], 28)
-    page.keyboard.down("k")
+    hold(page, ["w"], 28)
+    page.keyboard.down("s")
     hold(page, [], 9)
     page.keyboard.up("f")
     hold(page, [], 14)
-    page.keyboard.up("k")
+    page.keyboard.up("s")
     hold(page, [], 90)
     out = float(page.get_attribute("body", "data-out"))
     check(out > 5, f"a cast lets line run out past 5 m ({out} m)")
@@ -84,8 +87,44 @@ def run(page, check, engine):
     # the settings, and back
     page.keyboard.press("Escape")
     page.wait_for_selector("body[data-screen='settings']")
-    check(page.locator("#settings .chip").count() == 8, "the settings offer arm speed, steady hands and steady hull")
+    check(page.locator("#settings .chip").count() == 5, "the settings offer arm speed and steady hull")
     page.click("#settings .btn.go")
     page.wait_for_selector("body[data-screen='fishing']")
     check(True, "the resume button returns to fishing")
+
+    # the power wind runs on the battery, which drains while E is held (T15):
+    # 8 s of running for a full charge, so a second of it uses 12 or 13 %
+    hold(page, ["e"], 60)
+    left = float(page.get_attribute("body", "data-battery"))
+    check(85 <= left <= 90, f"a second of power wind uses an eighth of the battery ({left} % left)")
+    check(page.is_visible("#battery"), "the battery meter is shown")
+
+    # the fish log, from the settings (T11)
+    page.keyboard.press("Escape")
+    page.click("#settings .btn >> text=" + STRINGS["log.open"])
+    page.wait_for_selector("body[data-screen='log']")
+    kinds = sum(len(p["fish"]) for p in PLACES)
+    check(page.locator("#log .row").count() == kinds, f"the log lists all {kinds} kinds of fish")
+
+    # the Ledge River: its HUD names it and reports no tide (T16)
+    page.click("#log .btn >> text=" + STRINGS["change.place"])
+    page.wait_for_selector("body[data-screen='title']")
+    page.click("#title-card .chip >> text=" + STRINGS["place.ledge_river"])
+    page.wait_for_function("() => document.body.dataset.place === '1'")
+    page.click("#title-card .btn.go")
+    page.wait_for_selector("body[data-screen='fishing']")
+    check(STRINGS["place.ledge_river"].lower() in page.inner_text("#place").lower(), "the HUD names the Ledge River")
+    check(STRINGS["tide.none"] in page.inner_text("#place"), "the river has no tide")
+
+    # the speedboat on the river: full throttle for three seconds passes 30 km/h
+    page.keyboard.press("Escape")
+    page.click("#settings .btn >> text=" + STRINGS["change.place"])
+    page.click("#title-card .chip >> text=" + STRINGS["craft.speedboat"])
+    page.wait_for_function("() => document.body.dataset.boat === '1'")
+    page.click("#title-card .btn.go")
+    page.wait_for_selector("body[data-screen='fishing']")
+    hold(page, ["ArrowUp"], 180)
+    speed = float(page.get_attribute("body", "data-speed"))
+    check(speed > 30, f"the speedboat passes 30 km/h in three seconds ({speed} km/h)")
+    check(not page.is_visible("#ring"), "the speedboat shows no tension ring")
     check(page.inner_text("#error") == "", "no error message is shown")

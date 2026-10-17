@@ -7,25 +7,28 @@ use tool_core::fish::Mood;
 use tool_core::fx::{self, ONE};
 use tool_core::world::{bits, Event, GearSpec, PlaceSpec, World};
 
-fn world(seed: u64) -> World {
+fn world(place: usize, seed: u64) -> World {
     let gear: GearSpec = serde_json::from_str(include_str!("../../../data/gear.json")).unwrap();
-    let place: PlaceSpec = serde_json::from_str(include_str!("../../../data/place.json")).unwrap();
-    World::new(gear, place, seed)
+    let places: Vec<PlaceSpec> = serde_json::from_str(include_str!("../../../data/places.json")).unwrap();
+    World::new(gear, places[place].clone(), 0, seed)
 }
 
 /// A scripted angler: casts, lets the lure sink, winds in bursts, sets the
 /// hook on a bite, and fights by winding while the pull is under the drag.
 /// Returns the tick of the first landed fish, if any.
-pub fn fish_for(seed: u64, ticks: u64) -> Option<u64> {
+pub fn fish_for(place: usize, seed: u64, ticks: u64) -> Option<u64> {
     use bits::*;
-    let mut w = world(seed);
-    let mut phase = 0u32; // 0 cast back, 1 forward, 2 sink, 3 retrieve, 4 set, 5 fight
+    let mut w = world(place, seed);
+    // 0 cast back, 1 forward, 2 sink, 3 retrieve, 4 set, 5 fight, 6 line up on a river
+    let mut phase = if w.sea.river.is_some() { 6u32 } else { 0 };
     let mut t_in = 0u32;
     for t in 0..ticks {
         t_in += 1;
         let hooked = w.holder.map(|i| w.fish[i].mood == Mood::Hooked).unwrap_or(false);
         let bit = w.events.iter().any(|e| matches!(e, Event::Bit(_)));
-        if bit && phase == 3 {
+        // a bite while the lure sinks or drifts counts too: a river trout
+        // often takes a lure the current carries
+        if bit && (phase == 2 || phase == 3) {
             phase = 4;
             t_in = 0;
         }
@@ -34,12 +37,37 @@ pub fn fish_for(seed: u64, ticks: u64) -> Option<u64> {
             t_in = 0;
         }
         let keys = match phase {
+            6 => {
+                // on a river: face upstream and keep off the banks before casting,
+                // as a river angler would (the kayak drifts to the outer bank)
+                let r = w.sea.river.as_ref().unwrap();
+                let up = r.along(w.hull.pos).scale(-ONE);
+                let s = r.across(w.hull.pos);
+                // aim a little toward the middle when off it
+                let inward = w.hull.pos.sub(r.centre).flat().with_len(ONE).scale(-s);
+                let aim = up.add(inward);
+                let want = tool_core::geom::yaw_of(aim.x, aim.z);
+                let off = (want - w.hull.heading + fx::TURN / 2).rem_euclid(fx::TURN) - fx::TURN / 2;
+                let close = off.abs() < fx::TURN / 36;
+                if (close && s.abs() < ONE * 3 / 10) || t_in > 900 {
+                    phase = 0;
+                    t_in = 0;
+                }
+                let turn = if close {
+                    0
+                } else if off > 0 {
+                    DRIFT_RIGHT
+                } else {
+                    DRIFT_LEFT
+                };
+                turn | PEDAL
+            }
             0 => {
                 if t_in > 28 {
                     phase = 1;
                     t_in = 0;
                 }
-                FINGER | RIGHT_SHOULDER_UP
+                FINGER | SHOULDER_UP
             }
             1 => {
                 if t_in > 22 {
@@ -47,9 +75,9 @@ pub fn fish_for(seed: u64, ticks: u64) -> Option<u64> {
                     t_in = 0;
                 }
                 if t_in < 9 {
-                    FINGER | RIGHT_SHOULDER_DOWN
+                    FINGER | SHOULDER_DOWN
                 } else {
-                    RIGHT_SHOULDER_DOWN
+                    SHOULDER_DOWN
                 }
             }
             2 => {
@@ -62,7 +90,7 @@ pub fn fish_for(seed: u64, ticks: u64) -> Option<u64> {
             3 => {
                 if w.line.out < 4 * ONE {
                     // back at the kayak with nothing: cast again
-                    phase = 0;
+                    phase = if w.sea.river.is_some() { 6 } else { 0 };
                     t_in = 0;
                 }
                 if t_in % 90 < 45 {
@@ -76,14 +104,15 @@ pub fn fish_for(seed: u64, ticks: u64) -> Option<u64> {
                     phase = if hooked { 5 } else { 3 };
                     t_in = 0;
                 }
-                RIGHT_SHOULDER_UP | LEFT_SHOULDER_UP
+                // sweep and wind together, taking up the slack the current puts in the line
+                SHOULDER_UP | WIND
             }
             _ => {
                 if w.holder.is_none() {
                     phase = 3;
                 }
                 let lower = if w.arms.angle[2] > 70 * fx::TURN / 360 {
-                    RIGHT_SHOULDER_DOWN
+                    SHOULDER_DOWN
                 } else {
                     0
                 };
@@ -109,7 +138,13 @@ pub fn fish_for(seed: u64, ticks: u64) -> Option<u64> {
 #[test]
 fn a_scripted_angler_lands_a_fish_within_ten_minutes() {
     // ten minutes of play, on three seeds
-    let landed: Vec<Option<u64>> = (1..=3).map(|s| fish_for(s, 36_000)).collect();
+    let landed: Vec<Option<u64>> = (1..=3).map(|s| fish_for(0, s, 36_000)).collect();
+    assert!(landed.iter().all(|l| l.is_some()), "{landed:?}");
+}
+
+#[test]
+fn a_scripted_angler_lands_a_fish_on_the_ledge_river_within_ten_minutes() {
+    let landed: Vec<Option<u64>> = (1..=3).map(|s| fish_for(1, s, 36_000)).collect();
     assert!(landed.iter().all(|l| l.is_some()), "{landed:?}");
 }
 
@@ -118,8 +153,10 @@ fn a_scripted_angler_lands_a_fish_within_ten_minutes() {
 #[test]
 #[ignore]
 fn time_to_land_on_eight_seeds() {
-    for seed in 1..=8 {
-        let t = fish_for(seed, 72_000);
-        println!("seed {seed}: landed at {:?} s", t.map(|t| t / 60));
+    for place in 0..2 {
+        for seed in 1..=8 {
+            let t = fish_for(place, seed, 72_000);
+            println!("place {place} seed {seed}: landed at {:?} s", t.map(|t| t / 60));
+        }
     }
 }

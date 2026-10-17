@@ -23,12 +23,12 @@ impl Game {
     pub fn new(
         strings: &str,
         gear: &str,
-        place: &str,
+        places: &str,
         look: &str,
         glossary: &str,
         seed: u32,
     ) -> Result<Game, JsError> {
-        Session::new(strings, gear, place, look, glossary, seed as u64)
+        Session::new(strings, gear, places, look, glossary, seed as u64)
             .map(|inner| Game { inner })
             .map_err(|e| JsError::new(&e))
     }
@@ -76,6 +76,17 @@ impl Game {
     }
     pub fn uniforms(&self) -> Vec<f32> {
         floats(self.inner.frame_uniforms())
+    }
+    /// Counts up when the place or boat changes: the GPU's constants and
+    /// flow map are then out of date.
+    pub fn generation(&self) -> u32 {
+        self.inner.generation
+    }
+    pub fn flow_size(&self) -> Vec<i32> {
+        self.inner.flow_size()
+    }
+    pub fn flow_map(&self) -> Vec<u8> {
+        self.inner.flow_map().to_vec()
     }
     pub fn checksum(&self) -> String {
         self.inner.checksum().to_string()

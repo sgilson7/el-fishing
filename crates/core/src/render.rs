@@ -114,6 +114,11 @@ impl Batch {
         self.push(mesh, Pass::Solid, at, f, rgb, 0);
     }
 
+    /// How many instances of one mesh a pass holds.
+    pub fn count_of(&self, mesh: usize, pass: Pass) -> usize {
+        self.lists[pass as usize * self.meshes + mesh].len() / INSTANCE_VALUES
+    }
+
     pub fn count(&self) -> usize {
         self.lists.iter().map(|l| l.len() / INSTANCE_VALUES).sum()
     }

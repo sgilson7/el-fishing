@@ -206,8 +206,13 @@ fn hull(o: &mut Vec<i32>) {
     let side = [ONE * 23 / 100, ONE * 56 / 100, ONE * 55 / 100];
     let dark = [ONE * 18 / 100, ONE * 46 / 100, ONE * 45 / 100];
     let deck = [ONE * 17 / 100, ONE * 41 / 100, ONE * 39 / 100];
-    // tints relative to the instance's colour: the hull uses white light and these shades
-    let shade = |c: [Fx; 3]| c.map(|v| fx::div(v, side[1]).min(ONE * 2));
+    // greys relative to the instance's colour, so a hull of any colour keeps
+    // its own hue (a tint taken channel by channel turned a white hull teal)
+    let sum = |c: [Fx; 3]| c[0] + c[1] + c[2];
+    let shade = |c: [Fx; 3]| {
+        let k = fx::div(sum(c), sum(side)).min(ONE * 2);
+        [k, k, k]
+    };
     let rings: Vec<[V3; 7]> = (0..=n).map(|i| section(-half + 2 * half * i / n)).collect();
     for i in 0..n as usize {
         for k in 0..6 {
@@ -251,6 +256,7 @@ pub fn fish_body(spec: &FishSpec) -> Vec<i32> {
         hex(&spec.colours[1]),
         hex(&spec.colours[2]),
     );
+    let fin = hex(&spec.colours[3]);
     let depth = spec.depth_pct * ONE / 100;
     let width = spec.width_pct * ONE / 100;
     let n = 16;
@@ -279,6 +285,14 @@ pub fn fish_body(spec: &FishSpec) -> Vec<i32> {
         if spec.pattern == "spots" && fx::mul(fx::sin(t * 9), fx::sin(up * 3)) > ONE * 7 / 10 && up > -ONE / 3
         {
             c = mix(c, [ONE * 16 / 100, ONE * 41 / 100, ONE * 85 / 100], ONE * 8 / 10);
+        }
+        // a trout's small dark dots, and a bass's dark bars, in the fin colour
+        if spec.pattern == "dots" && fx::mul(fx::sin(t * 23), fx::sin(up * 7)) > ONE * 3 / 4 && up > -ONE / 4
+        {
+            c = mix(c, fin, ONE * 85 / 100);
+        }
+        if spec.pattern == "bars" && fx::sin(t * 14) > ONE * 6 / 10 && up > -ONE / 5 {
+            c = mix(c, fin, ONE * 6 / 10);
         }
         c
     };

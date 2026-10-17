@@ -36,8 +36,17 @@ uniform vec4 uFoam;
 uniform vec4 uFoamEdge;
 // ripple scale, second ripple scale, ripple drift speed, ripple strength
 uniform vec4 uDetail;
-// ripple fade distance, current x, current z, current strength
+// ripple fade distance, unused, unused, unused
 uniform vec4 uFlow;
+// the current, as the core samples it on a grid (the flow map): red and
+// green the current along x and z, blue the white water round rocks
+uniform sampler2D uFlowMap;
+// the flow map's corner (x, z) and its size, metres
+uniform vec4 uFlowBox;
+// the current the map's full scale stands for (m/s), streak strength, white water strength, ripple carry period (s)
+uniform vec4 uFlowK;
+// streak scale along the current, across it, noise where streaks start, noise where they are whole
+uniform vec4 uStreak;
 // hash constants (Hoskins's hash without sine)
 uniform vec4 uHash;
 // kayak x, kayak z, heading in turns, speed
@@ -68,6 +77,13 @@ float noise(vec2 p) {
   vec2 u = f * f * (vec2(1.0) + vec2(1.0) + vec2(1.0) - f - f);
   return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0)), u.x), u.y);
 }
+// the eye-detail ripples' slope at a point: two noises at two scales
+vec2 ripple(vec2 xz) {
+  vec2 p1 = xz * uDetail.x - vec2(uTime * uDetail.z);
+  vec2 p2 = xz * uDetail.y + vec2(uTime * uDetail.z, -uTime * uDetail.z);
+  return vec2(noise(p1) - noise(p1 + vec2(uHalf, 0.0)), noise(p1) - noise(p1 + vec2(0.0, uHalf)))
+       + vec2(noise(p2) - noise(p2 + vec2(uHalf, 0.0)), noise(p2) - noise(p2 + vec2(0.0, uHalf)));
+}
 vec3 sky(vec3 d) {
   float t = clamp(d.y, 0.0, 1.0);
   return mix(uSkyHor, uSkyTop, pow(t, uLook.x));
@@ -75,15 +91,28 @@ vec3 sky(vec3 d) {
 void main() {
   vec2 xz = vW.xz;
   float dist = length(uEye - vW);
-  // the eye-detail layer: two drifting noise ripples, fading with distance
+  // the eye-detail layer: ripples carried by the current in two layers,
+  // each faded out as it resets (Vlachos's flow maps), fading with distance
   float fade = clamp(1.0 - dist / uFlow.x, 0.0, 1.0);
-  vec2 drift = uFlow.yz * uFlow.w * uTime;
-  vec2 p1 = xz * uDetail.x - drift - vec2(uTime * uDetail.z);
-  vec2 p2 = xz * uDetail.y + drift + vec2(uTime * uDetail.z, -uTime * uDetail.z);
-  vec2 g = vec2(noise(p1) - noise(p1 + vec2(uHalf, 0.0)), noise(p1) - noise(p1 + vec2(0.0, uHalf)))
-         + vec2(noise(p2) - noise(p2 + vec2(uHalf, 0.0)), noise(p2) - noise(p2 + vec2(0.0, uHalf)));
-  g *= uDetail.w * fade;
-  float foamAdd = 0.0;
+  vec4 fm = texture(uFlowMap, (xz - uFlowBox.xy) / uFlowBox.zw);
+  vec2 flow = (fm.rg - vec2(uHalf)) * (uFlowK.x + uFlowK.x);
+  float speed = length(flow);
+  float ph = uTime / uFlowK.w;
+  float t1 = fract(ph);
+  float t2 = fract(ph + uHalf);
+  float w1 = 1.0 - abs(t1 - uHalf) / uHalf;
+  vec2 q1 = xz - flow * t1 * uFlowK.w;
+  vec2 q2 = xz - flow * t2 * uFlowK.w;
+  vec2 g = (ripple(q1) * w1 + ripple(q2) * (1.0 - w1)) * uDetail.w * fade;
+  // streaks that run with the current, and white water round the rocks
+  vec2 along = flow / (speed + uHash.y);
+  vec2 across = vec2(-along.y, along.x);
+  float s1 = noise(vec2(dot(q1, along) * uStreak.x, dot(q1, across) * uStreak.y));
+  float s2 = noise(vec2(dot(q2, along) * uStreak.x, dot(q2, across) * uStreak.y));
+  float streak = smoothstep(uStreak.z, uStreak.w, s1 * w1 + s2 * (1.0 - w1));
+  float foamAdd = streak * clamp(speed / uFlowK.x, 0.0, 1.0) * uFlowK.y * fade;
+  float churn = noise(q1 * uFoam.w) * w1 + noise(q2 * uFoam.w) * (1.0 - w1);
+  foamAdd += fm.b * churn * uFlowK.z;
   // the wake: a V behind the moving kayak
   if (uKayak.w > 0.0) {
     float a = uKayak.z * uTau;

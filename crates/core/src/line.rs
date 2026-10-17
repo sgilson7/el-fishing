@@ -49,8 +49,11 @@ pub struct LineSpec {
     /// The line's internal damping: XPBD's γ, in percent (R2.6).
     pub damping_pct: i32,
     pub wind_per_turn_cm: i32,
-    /// How fast the electric motor brings line in.
+    /// How fast the electric motor brings line in while it pulls.
     pub power_wind_cm_s: i32,
+    /// The most the motor pulls, tenths of a newton. While it pulls the drag
+    /// holds up to this, so a jerk can lift a tired fish (T15).
+    pub power_pull_dn: i32,
     pub turns_per_s_x10: i32,
     /// N per metre of tip bend, and the most the tip bends.
     pub rod_stiffness_n_m: i32,
@@ -59,6 +62,10 @@ pub struct LineSpec {
     pub iterations: usize,
     /// Drag along the line as a share of drag across it, percent.
     pub along_drag_pct: i32,
+    /// With the bail open, line leaves the spool only while the line out is
+    /// shorter than the straight distance from the tip to the lure plus this
+    /// share of it: the curve a flying or drifting line takes (T10).
+    pub free_slack_pct: i32,
 }
 
 /// What the player does with the reel this tick.
@@ -69,7 +76,7 @@ pub struct LineInput {
     /// Space: close the bail and wind.
     pub wind: bool,
     /// E: close the bail and bring the line in on the reel's electric motor.
-    /// The world allows it only while no fish has the lure (T7).
+    /// The world pulses it and runs it from the battery (T15).
     pub power: bool,
 }
 
@@ -216,8 +223,10 @@ impl Line {
         self.bend = toward.with_len(bend_len);
         // which points are under water, once a tick
         let wet: Vec<bool> = self.pts.iter().map(|p| p.y < sea.height(p.x, p.z)).collect();
-        let water = sea.water_velocity();
-        let floor = -sea.depth;
+        // the current and the bottom under each point, once a tick: a river's
+        // flow and bed change from place to place (T16)
+        let water: Vec<V3> = self.pts.iter().map(|p| sea.current_at(p.x, p.z)).collect();
+
         let (pm, pv, pa) = self.point();
         let floor_mass = s.point_floor_mg * ONE / 1_000_000;
         let wind_per_s = fx::mul(s.wind_per_turn_cm * ONE / 100, s.turns_per_s_x10 * ONE / 10);
@@ -232,6 +241,9 @@ impl Line {
             pred[0] = tip_now;
             // the forces on each point, kept to read the tension from
             let mut felt = vec![V3::ZERO; n];
+            // where the bottom moved a point this substep: a correction of its
+            // place, not a speed, so it is left out of the velocity after
+            let mut shift = vec![V3::ZERO; n];
             for i in 1..n {
                 let is_end = i == n - 1;
                 let (mass, volume, area, force) = if is_end {
@@ -241,7 +253,7 @@ impl Line {
                 };
                 let inertia = mass.max(floor_mass).max(1);
                 let (rho, flow) = if wet[i] {
-                    (sea.density, water)
+                    (sea.density, water[i])
                 } else {
                     (AIR, sea.wind)
                 };
@@ -277,34 +289,66 @@ impl Line {
                 v = after;
                 self.vel[i] = v;
                 pred[i] = self.pts[i].add(v.scale(h));
-                if pred[i].y < floor {
-                    pred[i].y = floor;
-                    self.vel[i].y = 0;
+                // the bottom: a point that comes down on it rests there; one that
+                // runs into a bank's or a rock's side from the water is put back
+                // in the water beside it, not lifted onto the top (T16)
+                let bed = sea.bed_at(pred[i].x, pred[i].z);
+                if pred[i].y < bed {
+                    let push = if self.pts[i].y < bed {
+                        sea.push_out(pred[i], 0).flat()
+                    } else {
+                        V3::ZERO
+                    };
+                    if push == V3::ZERO {
+                        shift[i] = v3(0, bed - pred[i].y, 0);
+                        pred[i].y = bed;
+                        self.vel[i].y = 0;
+                    } else {
+                        shift[i] = push;
+                        pred[i] = pred[i].add(push);
+                    }
                 }
             }
             let reach: Fx = pred.windows(2).map(|w| w[1].sub(w[0]).len()).sum();
             let longest = s.longest_out_m * ONE;
             if !pinned {
                 // the bail is open and no finger holds the line: it comes off the
-                // spool as the lure pulls it, and the chain is spread evenly along
-                // its new length, so nothing holds the lure back but the line's drag
-                self.out = self.out.max(reach).min(longest);
-                let (p, v) = respace(&pred, &self.vel, self.out);
-                self.pts = p;
-                self.vel = v;
-                self.pts[0] = tip_now;
-                continue;
+                // spool as the lure pulls it. Only the lure's own distance pulls:
+                // line that waves, wind or current belly out does not turn the
+                // spool, or it would ratchet off at every swell (T10)
+                let straight = pred[n - 1].sub(tip_now).len();
+                let allowed = straight + fx::mul(straight, s.free_slack_pct * ONE / 100);
+                self.out = self.out.max(reach.min(allowed)).min(longest);
+                if reach <= self.out {
+                    // the chain is spread evenly along its new length, so nothing
+                    // holds the lure back but the line's drag
+                    let (p, v) = respace(&pred, &self.vel, self.out);
+                    self.pts = p;
+                    self.vel = v;
+                    self.pts[0] = tip_now;
+                    continue;
+                }
+                // a belly longer than the line out: the line holds it like a
+                // pinned one, with no drag and no winding while the bail is open
             }
             let ea = self.stiffness();
-            if !self.bail_open && self.tension > self.drag() {
+            // while the motor pulls, the drag holds up to the motor's pull
+            let motor = input.power && !self.bail_open;
+            let slip_at = if motor {
+                self.drag().max(deci(s.power_pull_dn))
+            } else {
+                self.drag()
+            };
+            if !self.bail_open && self.tension > slip_at {
                 // the drag: when the pull passes its setting the spool gives the
                 // stretch above it, (T − drag) × out / EA, so the pull falls back
                 // to the setting
-                let give = fx::div(fx::mul(self.tension - self.drag(), self.out), ea);
+                let give = fx::div(fx::mul(self.tension - slip_at, self.out), ea);
                 self.out += give / SUBSTEPS;
                 self.slipping = true;
             }
-            if input.power && !self.bail_open {
+            if motor && !self.slipping {
+                // a stalled motor winds nothing
                 self.out -= fx::mul(power_per_s, h);
             } else if input.wind && !self.bail_open && !self.slipping {
                 self.out -= fx::mul(wind_per_s, h);
@@ -386,7 +430,7 @@ impl Line {
                 }
             }
             for i in 1..n {
-                let moved = pred[i].sub(old[i]);
+                let moved = pred[i].sub(old[i]).sub(shift[i]);
                 self.vel[i] = v3(fx::div(moved.x, h), fx::div(moved.y, h), fx::div(moved.z, h));
             }
             // the pull on the tip: the end's tie, which carries the end's whole
@@ -474,11 +518,13 @@ pub mod tests {
             damping_pct: 20,
             wind_per_turn_cm: 60,
             power_wind_cm_s: 600,
+            power_pull_dn: 260,
             turns_per_s_x10: 20,
             rod_stiffness_n_m: 25,
             rod_bend_max_cm: 60,
             iterations: 12,
             along_drag_pct: 2,
+            free_slack_pct: 20,
         }
     }
 
@@ -498,6 +544,7 @@ pub mod tests {
             wind_mm_s: 0,
             density_kg_m3: 1025,
             depth_cm: 1800,
+            river: None,
         });
         s.waves_on = false;
         s.current_on = false;
@@ -674,6 +721,43 @@ pub mod tests {
             near < 2 * ONE && out == 120 * ONE / 100,
             "a held line keeps the lure close: {near}"
         );
+    }
+
+    #[test]
+    fn the_power_wind_brings_in_a_pull_the_drag_would_give_to() {
+        // a steady 15 N pull: over the 7.1 N drag, so winding by hand slips,
+        // but under the motor's 26 N, so the power wind still brings line in
+        let pulled = |input: LineInput| {
+            let sea = calm();
+            let mut l = laid_out();
+            let start = l.out;
+            let end = EndLoad {
+                mass: 2 * ONE,
+                volume: 2 * ONE,
+                area: ONE / 50,
+                force: v3(0, 0, 15 * ONE),
+            };
+            for t in 0..240 {
+                let e = EndLoad {
+                    force: end.force.ratio(t.min(120), 120),
+                    ..end
+                };
+                l.tick(&sea, deep(), input, e);
+            }
+            l.out - start
+        };
+        let by_hand = pulled(LineInput {
+            finger: false,
+            wind: true,
+            power: false,
+        });
+        let motor = pulled(LineInput {
+            finger: false,
+            wind: false,
+            power: true,
+        });
+        assert!(by_hand > 0, "by hand the drag gives line: {by_hand}");
+        assert!(motor < 0, "the motor brings line in: {motor}");
     }
 
     #[test]

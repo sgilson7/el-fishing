@@ -11,6 +11,7 @@ use serde::Deserialize;
 
 use crate::fx::{self, Fx, ONE};
 use crate::geom::{v3, V3};
+use crate::river::{River, RiverSpec};
 use crate::ticks::TICKS_PER_SECOND;
 
 /// Gravity at the sea surface, 9.81 m/s², in Q16.
@@ -44,6 +45,10 @@ pub struct SeaSpec {
     pub wind_mm_s: i32,
     pub density_kg_m3: i32,
     pub depth_cm: i32,
+    /// A river's banks, bed and rocks; its current runs at `current_mm_s`
+    /// mid-channel, round the loop (T16). The open sea has none.
+    #[serde(default)]
+    pub river: Option<RiverSpec>,
 }
 
 /// One wave, ready to evaluate.
@@ -132,6 +137,7 @@ pub struct Sea {
     pub wind: V3,
     pub density: Fx,
     pub depth: Fx,
+    pub river: Option<River>,
     /// Layer switches, for the tests that turn one off.
     pub waves_on: bool,
     pub tide_on: bool,
@@ -157,6 +163,10 @@ impl Sea {
             wind: along(s.wind_toward_deg, s.wind_mm_s),
             density: s.density_kg_m3 * ONE,
             depth: s.depth_cm * ONE / 100,
+            river: s
+                .river
+                .as_ref()
+                .map(|r| River::new(r, s.current_mm_s, s.depth_cm * ONE / 100)),
             waves_on: true,
             tide_on: true,
             current_on: true,
@@ -230,12 +240,32 @@ impl Sea {
         self.surface(x, z).height
     }
 
-    /// The current alone.
-    pub fn water_velocity(&self) -> V3 {
-        if self.current_on {
-            self.current
-        } else {
-            V3::ZERO
+    /// The current at a point: the place's one current on the open sea, a
+    /// river's flow round its banks and rocks.
+    pub fn current_at(&self, x: Fx, z: Fx) -> V3 {
+        if !self.current_on {
+            return V3::ZERO;
+        }
+        match &self.river {
+            Some(r) => r.current(v3(x, 0, z)),
+            None => self.current,
+        }
+    }
+
+    /// The height of the bottom under a point.
+    pub fn bed_at(&self, x: Fx, z: Fx) -> Fx {
+        match &self.river {
+            Some(r) => r.bed(v3(x, 0, z)),
+            None => -self.depth,
+        }
+    }
+
+    /// How far to move a point to keep it `margin` clear of the banks and
+    /// rocks; zero on the open sea.
+    pub fn push_out(&self, p: V3, margin: Fx) -> V3 {
+        match &self.river {
+            Some(r) => r.push_out(p, margin),
+            None => V3::ZERO,
         }
     }
 
@@ -243,7 +273,7 @@ impl Sea {
     /// the waves' orbital motion, which runs forward under a crest and
     /// back under a trough (linear deep-water theory, u = ωA sin θ).
     pub fn surface_velocity(&self, x: Fx, z: Fx) -> V3 {
-        let mut v = self.water_velocity();
+        let mut v = self.current_at(x, z);
         if self.waves_on {
             for w in &self.waves {
                 let u = fx::mul(w.orbit, fx::sin(w.angle(x, z)));
@@ -294,6 +324,7 @@ mod tests {
             wind_mm_s: 0,
             density_kg_m3: 1025,
             depth_cm: 1800,
+            river: None,
         })
     }
 
@@ -366,7 +397,7 @@ mod tests {
     fn the_current_flows_toward_its_heading() {
         // 206 mm/s toward 90 degrees: along +x
         let s = sea(vec![]);
-        let c = s.water_velocity();
+        let c = s.current_at(40 * ONE, -7 * ONE);
         assert!((c.x - 206 * ONE / 1000).abs() < 30 && c.z.abs() < 30, "{c:?}");
     }
 }

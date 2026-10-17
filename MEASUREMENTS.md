@@ -12,7 +12,7 @@ The state measured rather than recalled, so later changes can be compared with i
 | WebAssembly size | printed by `./scripts/build.sh` | 476 KB | 2026-10-17 |
 | Breaks caught | `python3 scripts/break_tests.py` | 15 of 15 (round 3 added one) | 2026-10-17 |
 | Frame rate, Open Swell, 1440 × 900 | Playwright Chromium, headed, GPU on: frames counted over 5 s after the start (`fps.py` in the session's scratchpad, not kept) | 120 a second (the display's rate); worst frame 9.4 ms; renderer ANGLE Metal, Apple M2 Max | 2026-10-17 |
-| Time for the scripted angler to land a fish | `cargo test --test angler -- --ignored --nocapture` | round 2: 180, 184, 191, 200, 256, 259, 330 and 412 s; round 3, with the weaker fish and faster reel (T3, T4): 70, 123, 68, 146, 43, 75, 123 and 68 s, on seeds 1 to 8 | 2026-10-17 |
+| Time for the scripted angler to land a fish | `cargo test --test angler -- --ignored --nocapture` | round 2: 180, 184, 191, 200, 256, 259, 330 and 412 s; round 3, with the weaker fish and faster reel (T3, T4): 70, 123, 68, 146, 43, 75, 123 and 68 s, on seeds 1 to 8; round 4, one casting arm and the cast's line limit: Open Swell 69, 59, 63, 58, 40, 34, 38 and 37 s; Ledge River 35, 170, 174, 170, 258, 24, 676 and 347 s | 2026-10-17 |
 
 ## Not measured
 
