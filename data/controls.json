@@ -11,11 +11,20 @@
     "ArrowDown": "back_pedal",
     "ArrowLeft": "drift_left",
     "ArrowRight": "drift_right",
-    "KeyE": "power_wind"
+    "KeyE": "power_wind",
+    "KeyQ": "let_out"
   },
-  "mouse": { "2": "scope" },
+  "mouse": {
+    "2": "scope"
+  },
   "acts": {
-    "Escape": ["menu.toggle", ""],
-    "Enter": ["screen.show", "fishing"]
+    "Escape": [
+      "menu.toggle",
+      ""
+    ],
+    "Enter": [
+      "screen.show",
+      "fishing"
+    ]
   }
 }

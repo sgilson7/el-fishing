@@ -384,7 +384,14 @@ impl Session {
                 self.enter();
             }
             ("boat.choose", v) => {
-                self.boat = Session::pick(v, self.gear.boats.len())?;
+                let b = Session::pick(v, self.gear.boats.len())?;
+                if self.gear.boats[b].racing {
+                    return Err(format!(
+                        "The {} is kept for the racing maps.",
+                        self.strings.get(&self.gear.boats[b].name)
+                    ));
+                }
+                self.boat = b;
                 self.enter();
             }
             ("catch.release", _) | ("catch.keep", _) => {
@@ -835,6 +842,7 @@ impl Session {
                 [s.get("arms.elbow"), [k("A", bits::ELBOW_BEND), k("D", bits::ELBOW_STRAIGHTEN)]],
                 [s.get("arms.line"), [k("F", bits::FINGER), {"note": s.get("arms.finger")}]],
                 [s.get("arms.reel"), [k("Space", bits::WIND), {"note": s.get("arms.wind")}]],
+                [s.get("arms.let_out"), [k("Q", bits::LET_OUT), {"note": s.get("arms.let_out_note")}]],
             ],
         })
     }
@@ -989,7 +997,11 @@ impl Session {
             json!({"name": name, "options": labels.iter().enumerate().map(|(i, l)| json!({"value": i.to_string(), "label": l, "on": i == at})).collect::<Vec<_>>()})
         };
         let places = self.places.iter().map(|p| s.get(&p.name)).collect();
-        let boats = self.gear.boats.iter().map(|b| s.get(&b.name)).collect();
+        // craft kept for the racing maps to come are not offered here (T25)
+        let offered: Vec<usize> = (0..self.gear.boats.len())
+            .filter(|&i| !self.gear.boats[i].racing)
+            .collect();
+        let boats = json!({"name": "boat.choose", "options": offered.iter().map(|&i| json!({"value": i.to_string(), "label": s.get(&self.gear.boats[i].name), "on": i == self.boat})).collect::<Vec<_>>()});
         let start = if w.fishing() { "start.fish" } else { "start.drive" };
         // a place with more than one weather offers them in a dropdown (T18)
         let here = &self.places[self.place];
@@ -1007,7 +1019,7 @@ impl Session {
             "text": s.get("intro"),
             "choices": [
                 [s.get("choose.place"), chips("place.choose", places, self.place)],
-                [s.get("choose.boat"), chips("boat.choose", boats, self.boat)],
+                [s.get("choose.boat"), boats],
             ],
             "selects": weathers,
             "actions": [
@@ -1312,9 +1324,17 @@ pub mod tests {
         s.act("place.choose", "1").unwrap();
         assert!(s.world.sea.river.is_some());
         assert_eq!(s.generation, 1);
-        s.act("boat.choose", "1").unwrap();
-        assert!(!s.world.fishing());
-        assert_eq!(s.generation, 2);
+        // the speedboat is kept for the racing maps: not offered, and refused (T25)
+        let offered = s.ui()["panels"][0]["choices"][1][1]["options"]
+            .as_array()
+            .unwrap()
+            .len();
+        assert_eq!(offered, s.gear.boats.iter().filter(|b| !b.racing).count());
+        assert_eq!(
+            s.act("boat.choose", "1"),
+            Err("The Speedboat is kept for the racing maps.".into())
+        );
+        assert_eq!(s.generation, 1);
         assert_eq!(
             s.act("place.choose", "2"),
             Err("There is no choice \"2\".".into())
@@ -1322,8 +1342,7 @@ pub mod tests {
         s.act("screen.show", "fishing").unwrap();
         let ui = s.ui();
         assert_eq!(ui["panels"][0]["eyebrow"], "Ledge River · Calm midday");
-        assert_eq!(ui["panels"][0]["rows"][0][0], "Speed");
-        assert_eq!(ui["fishing"], false);
+        assert_eq!(ui["fishing"], true);
     }
 
     /// A session fishing, with fish 0 hooked on a short line beside the kayak.

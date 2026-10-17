@@ -36,7 +36,8 @@ def run(page, check, engine):
     check(page.inner_text("#title-card h2") == STRINGS["title"], "the title from data/strings.json is drawn")
     # eight how-to lines and one for each of the Open Swell's two species in data/places.json
     check(page.locator("#how li").count() == 8 + len(PLACES[0]["fish"]), "the how-to lines and one line for each species are listed")
-    check(page.locator("#title-card .chip").count() == len(PLACES) + len(GEAR["boats"]), "a chip for each place and each craft")
+    offered = [b for b in GEAR["boats"] if not b.get("racing")]
+    check(page.locator("#title-card .chip").count() == len(PLACES) + len(offered), "a chip for each place and each craft offered for fishing")
 
     page.click("#title-card .btn.go")
     page.wait_for_selector("body[data-screen='fishing']")
@@ -68,11 +69,14 @@ def run(page, check, engine):
     check(out > 5, f"a cast lets line run out past 5 m ({out} m)")
     check(page.get_attribute("body", "data-bail") == "open", "the bail is open after the cast")
 
-    # Space closes the bail and winds: line out falls
-    hold(page, ["Space"], 60)
+    # a tap of Space closes the bail; held, it winds (T24). A fish may take the
+    # lure as the line tightens, and then the drag gives line instead
+    hold(page, ["Space"], 6)
+    check(page.get_attribute("body", "data-bail") == "closed", "a tap of Space closes the bail")
+    hold(page, ["Space"], 120)
     after = float(page.get_attribute("body", "data-out"))
-    check(page.get_attribute("body", "data-bail") == "closed", "Space closes the bail")
-    check(after < out, f"winding brings line in ({out} m to {after} m)")
+    hooked = page.get_attribute("body", "data-hooked") == "true"
+    check(after < out or hooked, f"holding Space winds line in, or a fish is on ({out} m to {after} m)")
 
     # the scope: shown while the right mouse button is held, gone after
     box = page.locator("#gl").bounding_box()
@@ -128,17 +132,11 @@ def run(page, check, engine):
     check(STRINGS["place.ledge_river"].lower() in page.inner_text("#place").lower(), "the HUD names the Ledge River")
     check(STRINGS["tide.none"] in page.inner_text("#place"), "the river has no tide")
 
-    # the speedboat on the river: full throttle for three seconds passes 30 km/h
+    # the speedboat is kept for the racing maps: the craft chips do not offer it (T25)
     page.keyboard.press("Escape")
     page.click("#settings .btn >> text=" + STRINGS["change.place"])
-    page.click("#title-card .chip >> text=" + STRINGS["craft.speedboat"])
-    page.wait_for_function("() => document.body.dataset.boat === '1'")
+    labels = page.locator("#title-card .chip").all_inner_texts()
+    check(STRINGS["craft.speedboat"] not in labels, "the speedboat is not offered at a fishing place")
     page.click("#title-card .btn.go")
     page.wait_for_selector("body[data-screen='fishing']")
-    # Up pushes the throttle lever to full in two seconds and it stays there (T19)
-    hold(page, ["ArrowUp"], 120)
-    hold(page, [], 120)
-    speed = float(page.get_attribute("body", "data-speed"))
-    check(speed > 30, f"the speedboat passes 30 km/h four seconds after the lever goes forward ({speed} km/h)")
-    check(not page.is_visible("#ring"), "the speedboat shows no tension ring")
     check(page.inner_text("#error") == "", "no error message is shown")

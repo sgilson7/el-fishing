@@ -10,9 +10,9 @@
         "depth_cm": 30,
         "mass_kg": 130,
         "probe_area_cm2": 1470,
-        "thrust_n": 120,
+        "thrust_n": 430,
         "reverse_pct": 40,
-        "drag_along": 50,
+        "drag_along": 20,
         "drag_across": 500,
         "drag_across_linear": 20,
         "heave_damp": 675,
@@ -33,6 +33,7 @@
     {
       "name": "craft.speedboat",
       "fishing": false,
+      "racing": true,
       "hull": {
         "length_cm": 550,
         "beam_cm": 210,

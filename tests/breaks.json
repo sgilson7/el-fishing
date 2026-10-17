@@ -264,5 +264,19 @@
     "find": "                let torque = fx::mul(push_side, self.length() / 2);",
     "replace": "                let torque = fx::mul(push_side, self.length() / 4);",
     "test": "full_lock_at_full_throttle_turns_at_the_rate_the_water_allows"
+  },
+  {
+    "name": "Q lets line out (T23)",
+    "file": "crates/core/src/line.rs",
+    "find": "                self.out += fx::mul(wind_per_s, h);\n",
+    "replace": "\n",
+    "test": "q_lets_line_out_at_the_kayak_before_a_cast"
+  },
+  {
+    "name": "a tap of Space only closes the bail (T24)",
+    "file": "crates/core/src/world.rs",
+    "find": "            wind: self.wind_ticks > TICKS_PER_SECOND as u32 / 5,",
+    "replace": "            wind: on(WIND),",
+    "test": "a_tap_of_space_closes_the_bail_and_holds_the_line"
   }
 ]

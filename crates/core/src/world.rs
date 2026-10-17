@@ -29,9 +29,11 @@ pub mod bits {
     pub const DRIFT_RIGHT: u32 = 1 << 9;
     pub const SCOPE: u32 = 1 << 10;
     pub const POWER_WIND: u32 = 1 << 11;
+    /// Q: let line out off the reel, the bail closed, before a cast (T23).
+    pub const LET_OUT: u32 = 1 << 12;
     /// The four keys that move the casting arm (T12: one arm casts).
     pub const ARMS: u32 = 0xf;
-    pub const NAMES: [(&str, u32); 12] = [
+    pub const NAMES: [(&str, u32); 13] = [
         ("shoulder_up", SHOULDER_UP),
         ("shoulder_down", SHOULDER_DOWN),
         ("elbow_bend", ELBOW_BEND),
@@ -44,6 +46,7 @@ pub mod bits {
         ("drift_right", DRIFT_RIGHT),
         ("scope", SCOPE),
         ("power_wind", POWER_WIND),
+        ("let_out", LET_OUT),
     ];
 }
 
@@ -68,6 +71,9 @@ pub struct BoatSpec {
     /// The key of its name in the strings file.
     pub name: String,
     pub fishing: bool,
+    /// Kept for the racing maps to come, and not offered at a fishing place (T25).
+    #[serde(default)]
+    pub racing: bool,
     pub hull: HullSpec,
 }
 
@@ -218,6 +224,8 @@ pub struct World {
     power_ticks: i32,
     /// True on a tick the motor pulled.
     pub pulling: bool,
+    /// Ticks Space has been held.
+    wind_ticks: u32,
 }
 
 impl World {
@@ -266,6 +274,7 @@ impl World {
             battery: ONE,
             power_ticks: 0,
             pulling: false,
+            wind_ticks: 0,
         };
         for i in 0..w.fish.len() {
             w.settle(i);
@@ -305,7 +314,7 @@ impl World {
         let keys = if self.fishing() {
             keys
         } else {
-            keys & !(bits::ARMS | bits::FINGER | bits::WIND | bits::POWER_WIND)
+            keys & !(bits::ARMS | bits::FINGER | bits::WIND | bits::POWER_WIND | bits::LET_OUT)
         };
         let on = |b: u32| keys & b != 0;
         let both = |up: u32, down: u32| on(up) as i32 - on(down) as i32;
@@ -340,10 +349,15 @@ impl World {
         } else {
             (self.battery + ONE / (p.recharge_s.max(1) * per_s)).min(ONE)
         };
+        // a tap of Space closes the bail and holds the line where it is; held
+        // past a fifth of a second it winds (T24)
+        self.wind_ticks = if on(WIND) { self.wind_ticks + 1 } else { 0 };
         let line_input = LineInput {
             finger: on(FINGER),
-            wind: on(WIND),
+            close: on(WIND),
+            wind: self.wind_ticks > TICKS_PER_SECOND as u32 / 5,
             power: self.pulling,
+            let_out: on(LET_OUT),
         };
         self.sea.tick();
         self.arms.tick(arm_input);
@@ -762,6 +776,58 @@ pub mod tests {
             assert_ne!(w.arms.angle, before, "{name} did not move its joint");
         }
         assert_eq!(bits::ARMS, bits::NAMES.iter().take(4).fold(0, |a, (_, b)| a | b));
+    }
+
+    #[test]
+    fn q_lets_line_out_at_the_kayak_before_a_cast() {
+        // the reel's own speed backwards: 0.8 m a turn at 2.5 turns a second
+        // is 2 m a second, so a second of Q takes 1.2 m of line out to 3.2 m
+        let mut w = world(1);
+        for _ in 0..60 {
+            w.step(bits::LET_OUT);
+        }
+        assert!(!w.line.bail_open);
+        assert!(
+            (w.line.out - ONE * 32 / 10).abs() < ONE / 50,
+            "out {}",
+            w.line.out
+        );
+    }
+
+    #[test]
+    fn a_tap_of_space_closes_the_bail_and_holds_the_line() {
+        // after a cast the bail is open; a tenth of a second of Space closes
+        // it without winding, and the line out then stays put (T24)
+        use bits::*;
+        let mut w = world(1);
+        for t in 0..300u32 {
+            let k = match t {
+                0..=28 => FINGER | SHOULDER_UP,
+                29..=37 => FINGER | SHOULDER_DOWN,
+                38..=51 => SHOULDER_DOWN,
+                _ => 0,
+            };
+            w.step(k);
+        }
+        assert!(w.line.bail_open);
+        let out = w.line.out;
+        for _ in 0..6 {
+            w.step(WIND);
+        }
+        assert!(!w.line.bail_open);
+        for _ in 0..120 {
+            w.step(0);
+        }
+        assert!(
+            (w.line.out - out).abs() < ONE / 100,
+            "out {} from {out}",
+            w.line.out
+        );
+        // held, Space winds
+        for _ in 0..60 {
+            w.step(WIND);
+        }
+        assert!(w.line.out < out - ONE, "out {} from {out}", w.line.out);
     }
 
     #[test]

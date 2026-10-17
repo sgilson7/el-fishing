@@ -73,8 +73,12 @@ pub struct LineSpec {
 pub struct LineInput {
     /// F: a finger on the line, which also opens the bail.
     pub finger: bool,
-    /// Space: close the bail and wind.
+    /// Space pressed: close the bail (T24).
+    pub close: bool,
+    /// Space held: wind.
     pub wind: bool,
+    /// Q: let line out with the bail closed, as at the kayak before a cast (T23).
+    pub let_out: bool,
     /// E: close the bail and bring the line in on the reel's electric motor.
     /// The world pulses it and runs it from the battery (T15).
     pub power: bool,
@@ -212,7 +216,7 @@ impl Line {
             self.bail_open = true;
         }
         self.finger = input.finger;
-        if input.wind || input.power {
+        if input.close || input.wind || input.power || input.let_out {
             self.bail_open = false;
         }
         let pinned = !self.bail_open || self.finger;
@@ -352,6 +356,9 @@ impl Line {
                 self.out -= fx::mul(power_per_s, h);
             } else if input.wind && !self.bail_open && !self.slipping {
                 self.out -= fx::mul(wind_per_s, h);
+            } else if input.let_out && !self.bail_open {
+                // backwinding: line goes out at the reel's own winding speed
+                self.out += fx::mul(wind_per_s, h);
             }
             self.out = self.out.clamp(s.shortest_out_cm * ONE / 100, longest);
             let seg = self.seg();
@@ -599,6 +606,7 @@ pub mod tests {
             finger: true,
             wind: false,
             power: false,
+            ..LineInput::default()
         };
         for t in 0..240 {
             let fish = EndLoad {
@@ -625,6 +633,7 @@ pub mod tests {
             finger: true,
             wind: false,
             power: false,
+            ..LineInput::default()
         };
         // a heavy end pulled sideways by a steady force: the tension settles at that force
         let held = |newtons: i32| {
@@ -705,8 +714,7 @@ pub mod tests {
                     high(),
                     LineInput {
                         finger,
-                        wind: false,
-                        power: false,
+                        ..LineInput::default()
                     },
                     lure,
                 );
@@ -750,11 +758,13 @@ pub mod tests {
             finger: false,
             wind: true,
             power: false,
+            ..LineInput::default()
         });
         let motor = pulled(LineInput {
             finger: false,
             wind: false,
             power: true,
+            ..LineInput::default()
         });
         assert!(by_hand > 0, "by hand the drag gives line: {by_hand}");
         assert!(motor < 0, "the motor brings line in: {motor}");
@@ -775,6 +785,7 @@ pub mod tests {
                     finger: false,
                     wind: true,
                     power: false,
+                    ..LineInput::default()
                 },
                 lure,
             );
