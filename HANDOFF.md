@@ -67,11 +67,10 @@ Round 1: a bibliography field from memory (R1.11); labels projected with a stale
 
 ## What passed
 
-- `./scripts/check.sh`: BUILDER CHECK PASSED on 17 October 2026 (format, lint, 89 tests from `./scripts/count-tests.sh`, release build, import audit, art, notebook, and the browser check in Chromium, Firefox and WebKit).
-- `python3 scripts/break_tests.py`: 14 of 14 breaks caught.
-- Published with `./scripts/publish.sh` from 95faae9 to `https://sgilson7.github.io/el-fishing/`; the browser check against that address passed in all three engines.
-- The website lists the game in its 3D run (build 651a8ae4, local `website` commit e77223c); `make check`, `make packet`, `make gate` and `make gate-live` passed.
+- Round 4, at 14b18f5: `./scripts/check.sh` BUILDER CHECK PASSED on 17 October 2026 (format, lint, 113 tests from `./scripts/count-tests.sh` with 1 ignored, release build, import audit, art, notebook, and the browser check in Chromium, Firefox and WebKit, which now also drives the battery, the fish log, the Ledge River and the speedboat).
+- `python3 scripts/break_tests.py`: 34 of 34 breaks caught.
+- Not published. The live game is still round 3's build 61d6cbc (R4.20).
 
 ## The next action
 
-Play it yourself and write what you find as rows in `TRIAGE.md` (T2 onward): how the cast feels, whether the fish are too eager or too shy, how long a fight lasts. Then the next round is the next place.
+Try the Ledge River in the kayak first: cast upstream above a rock and let the current carry the lure past it, and when the Bite message shows, wind and sweep up with W together. Then take the speedboat out on the Open Swell at full throttle to feel it leave the water. Write what you find as rows in `TRIAGE.md` (T18 onward), and say whether to publish.
