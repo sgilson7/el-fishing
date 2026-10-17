@@ -26,7 +26,9 @@ async function main() {
     "shaders/water.frag",
   ];
   const [strings, gear, places, look, glossary, controls, skyVert, skyFrag, shapesVert, shapesFrag, waterVert, waterFrag] =
-    await Promise.all(files.map((f) => text(`data/${f}`)));
+    // BUILD_STAMP becomes "?v=<build>" when scripts/build.sh assembles dist/, so a
+    // new build's data is never served from an old cache beside its module
+    await Promise.all(files.map((f) => text(`data/${f}BUILD_STAMP`)));
   // the page draws a seed; the core keeps it (rng.rs)
   const seed = new Uint32Array(1);
   crypto.getRandomValues(seed);

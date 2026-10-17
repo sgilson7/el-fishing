@@ -49,6 +49,12 @@ find dist -name '*.js' -not -path '*/vendor/*' -print0 | xargs -0 perl -0777 -pi
   s{(fetch\\(\")([^\"?:]+)\"}{\$1\$2?v=$BUILD\"}g;
   s{new URL\\('([A-Za-z0-9_]+_bg\\.wasm)', import\\.meta\\.url\\)}{new URL('\$1?v=$BUILD', import.meta.url)}g;
 "
+# the data files the page fetches by name carry the stamp too (R6.5)
+find dist -name '*.js' -not -path '*/vendor/*' -print0 | xargs -0 perl -0777 -pi -e "s{BUILD_STAMP}{?v=$BUILD}g;"
+if grep -rn --include='*.js' --exclude-dir=vendor 'BUILD_STAMP' dist; then
+  echo "a BUILD_STAMP was left unreplaced" >&2
+  exit 1
+fi
 find dist -name '*.html' -print0 | xargs -0 perl -0777 -pi -e "
   s{((?:src|href)=\")([^\"?:#]+\\.(?:js|css))\"}{\$1\$2?v=$BUILD\"}g;
 "
