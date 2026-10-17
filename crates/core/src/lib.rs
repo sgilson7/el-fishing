@@ -7,6 +7,7 @@
 
 pub mod api;
 pub mod arms;
+pub mod fish;
 pub mod fx;
 pub mod geom;
 pub mod glossary;
@@ -16,3 +17,4 @@ pub mod page;
 pub mod rng;
 pub mod sea;
 pub mod ticks;
+pub mod world;

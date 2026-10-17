@@ -123,7 +123,12 @@ impl Hull {
 
     /// A direction in hull space, in the world.
     pub fn rotate(&self, local: V3) -> V3 {
-        geom::rotate(local, self.heading, -rad_to_turns(self.pitch), rad_to_turns(self.roll))
+        geom::rotate(
+            local,
+            self.heading,
+            -rad_to_turns(self.pitch),
+            rad_to_turns(self.roll),
+        )
     }
 
     /// The probes' places in hull space: eight along, two across, on the keel's plane.
@@ -194,9 +199,10 @@ impl Hull {
             self.vel.y += fx::mul(ay, h);
             // pitch and roll; the weight above the keel tips the hull further in a roll
             let tip = fx::mul(fx::mul(weight, lever), fx::sin(rad_to_turns(self.roll)));
-            let ap = fx::div(pitch_t, s.pitch_inertia_kg_m2 * ONE) - fx::mul(damp(s.pitch_damp), self.pitch_rate);
-            let ar =
-                fx::div(roll_t + tip, s.roll_inertia_kg_m2 * ONE) - fx::mul(damp(s.roll_damp), self.roll_rate);
+            let ap =
+                fx::div(pitch_t, s.pitch_inertia_kg_m2 * ONE) - fx::mul(damp(s.pitch_damp), self.pitch_rate);
+            let ar = fx::div(roll_t + tip, s.roll_inertia_kg_m2 * ONE)
+                - fx::mul(damp(s.roll_damp), self.roll_rate);
             self.pitch_rate += fx::mul(ap, h);
             self.roll_rate += fx::mul(ar, h);
             self.pitch += fx::mul(self.pitch_rate, h);
@@ -232,8 +238,8 @@ impl Hull {
             // dv = F h / m with 32 fraction bits: F (Q16) << 32 / m (Q16) is Q32 acceleration
             for (i, fi) in [f.x, f.z].into_iter().enumerate() {
                 let accel = ((fi as i64) << 32) / m as i64;
-                self.fine_vel[i] += accel * h as i64 >> 16;
-                self.fine_pos[i] += self.fine_vel[i] * h as i64 >> 16;
+                self.fine_vel[i] += (accel * h as i64) >> 16;
+                self.fine_pos[i] += (self.fine_vel[i] * h as i64) >> 16;
             }
             self.vel.x = (self.fine_vel[0] >> FINE) as Fx;
             self.vel.z = (self.fine_vel[1] >> FINE) as Fx;
@@ -324,7 +330,10 @@ mod tests {
         let mut h = Hull::new(spec(), V3::ZERO, 0);
         run(&mut h, &sea, HullInput::default(), 600);
         let draft = -h.pos.y;
-        assert!((draft - 3_533).abs() < ONE / 1000, "draft {draft} (want 3533 = 0.0539 m)");
+        assert!(
+            (draft - 3_533).abs() < ONE / 1000,
+            "draft {draft} (want 3533 = 0.0539 m)"
+        );
     }
 
     #[test]
@@ -335,7 +344,11 @@ mod tests {
         run(&mut h, &sea, HullInput { pedal: 1, drift: 0 }, 30 * 60);
         let v = h.speed();
         assert!((v - 101_515).abs() < 1_015, "speed {v}");
-        assert!(h.pos.z > 0 && h.pos.x.abs() < ONE / 100, "it went straight ahead: {:?}", h.pos);
+        assert!(
+            h.pos.z > 0 && h.pos.x.abs() < ONE / 100,
+            "it went straight ahead: {:?}",
+            h.pos
+        );
     }
 
     #[test]

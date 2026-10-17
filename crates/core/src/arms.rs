@@ -117,7 +117,7 @@ impl Arms {
 
     fn limits(&self, j: usize) -> (i32, i32) {
         let s = &self.spec;
-        if j % 2 == 0 {
+        if j.is_multiple_of(2) {
             (deg(s.shoulder_min_deg), deg(s.shoulder_max_deg))
         } else {
             (deg(s.elbow_min_deg), deg(s.elbow_max_deg))
@@ -130,7 +130,7 @@ impl Arms {
         let per_tick = |d: i32| deg(d) / TICKS_PER_SECOND as i32;
         let accel = deg(s.motor_accel_deg_s2) / (TICKS_PER_SECOND as i32 * TICKS_PER_SECOND as i32);
         for j in 0..JOINTS {
-            let mut top = per_tick(if j % 2 == 0 {
+            let mut top = per_tick(if j.is_multiple_of(2) {
                 s.shoulder_speed_deg_s
             } else {
                 s.elbow_speed_deg_s
@@ -172,7 +172,11 @@ impl Arms {
         elbow.x = (shoulder.x + hand_x) / 2;
         let mut hand = shoulder.add(upper).add(fore);
         hand.x = hand_x;
-        Limb { shoulder, elbow, hand }
+        Limb {
+            shoulder,
+            elbow,
+            hand,
+        }
     }
 
     /// The rod: from the two hands, blended toward the right forearm's line

@@ -262,7 +262,11 @@ impl Sea {
 
     /// The period of the tallest wave, Q16 s.
     pub fn peak_period(&self) -> Fx {
-        self.waves.iter().max_by_key(|w| w.amp).map(|w| period(w.length)).unwrap_or(0)
+        self.waves
+            .iter()
+            .max_by_key(|w| w.amp)
+            .map(|w| period(w.length))
+            .unwrap_or(0)
     }
 }
 
@@ -336,12 +340,10 @@ mod tests {
     fn the_open_swell_components_give_a_two_metre_sea() {
         // Σa² = 0.3025 + 0.1225 + 0.0625 + 0.0324 + 0.01 + 0.0036 + 0.0009
         // + 0.000225 = 0.534625; Hs = 4 √(0.2673) = 2.068 m
-        let s = sea(
-            [550, 350, 250, 180, 100, 60, 30, 15]
-                .iter()
-                .map(|&a| wave(0, 4000, a, 0))
-                .collect(),
-        );
+        let s = sea([550, 350, 250, 180, 100, 60, 30, 15]
+            .iter()
+            .map(|&a| wave(0, 4000, a, 0))
+            .collect());
         let hs = s.significant_height();
         assert!((hs - 135_528).abs() < 300, "Hs {hs}");
     }

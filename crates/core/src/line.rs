@@ -1,21 +1,22 @@
-//! The line: a chain of points from the rod tip to the lure, solved by
-//! follow-the-leader projection with velocity correction (Müller, Kim and
-//! Chentanez, "Fast Simulation of Inextensible Hair and Fur", 2012). Each
-//! point is pulled back to within its share of the line out from the point
-//! before it, so the line can never stretch past what is paid out; slack
-//! line sags. Weight, buoyancy and quadratic drag against the water (or the
-//! wind, above the surface) act on every point; the current carries them.
+//! The line: a chain of points from the rod tip to the lure, solved with
+//! XPBD (Macklin, Müller and Chentanez 2016). Neighbouring points are joined
+//! by ropes that can go slack but never push, and each point is tied to the
+//! tip by a long-range attachment no longer than the line between them
+//! (Kim, Chentanez and Müller 2012), so a long chain cannot stretch however
+//! heavy its end. The end's tie carries the whole line's give: a spring of
+//! EA over the line out, so a long line is softer than a short one, as a
+//! real one is. Weight, buoyancy and quadratic drag against the water (or
+//! the wind, above the surface) act on every point; the current carries them.
 //!
 //! The reel: F opens the bail with a finger on the line; letting go of F
 //! lets line run while the bail is open; Space closes the bail and winds.
-//! With the bail closed, the drag lets line slip when the tension passes
-//! its setting. Above the breaking tension the line snaps.
+//! With the bail closed, the drag lets line slip when the stretch says the
+//! pull is over its setting. Above the breaking tension the line snaps.
 //!
-//! Tension is read from the end: the lure (or the fish) pulled back by Δx
-//! in a step of h felt a force m Δx / h². To that is added the weight and
-//! drag of each taut point of line, along the line. That sum is the pull
-//! at the tip. While the spool runs free the line is respaced along its
-//! new length instead of being held, so it pulls nothing.
+//! Tension is the end tie's multiplier over h² (the end's whole load) plus
+//! the weight and drag of each point of line held at its full reach. While
+//! the spool runs free the line is respaced along its new length instead of
+//! being held, so it pulls nothing.
 
 use serde::Deserialize;
 
@@ -142,7 +143,10 @@ impl Line {
 
     /// EA: the force that would stretch the line by its whole length, N.
     pub fn stiffness(&self) -> Fx {
-        fx::div(self.break_tension(), self.spec.stretch_at_break_pct.max(1) * ONE / 100)
+        fx::div(
+            self.break_tension(),
+            self.spec.stretch_at_break_pct.max(1) * ONE / 100,
+        )
     }
 
     pub fn drag(&self) -> Fx {
@@ -211,7 +215,7 @@ impl Line {
         let floor_mass = s.point_floor_mg * ONE / 1_000_000;
         let wind_per_s = fx::mul(s.wind_per_turn_cm * ONE / 100, s.turns_per_s_x10 * ONE / 10);
         let mut tension_sum: i64 = 0;
-        let per_h2 = (TICKS_PER_SECOND as i64 * SUBSTEPS as i64).pow(2);
+        let per_h2 = (TICKS_PER_SECOND * SUBSTEPS as i64).pow(2);
         self.slipping = false;
         for sub in 0..SUBSTEPS {
             let tip_now = self.prev_tip.lerp(tip, (sub + 1) * ONE / SUBSTEPS);
@@ -228,9 +232,18 @@ impl Line {
                     (pm, pv, pa, V3::ZERO)
                 };
                 let inertia = mass.max(floor_mass).max(1);
-                let (rho, flow) = if wet[i] { (sea.density, water) } else { (AIR, sea.wind) };
+                let (rho, flow) = if wet[i] {
+                    (sea.density, water)
+                } else {
+                    (AIR, sea.wind)
+                };
                 // weight, less buoyancy under water, plus any other force
-                let lift = if wet[i] { fx::mul(fx::mul(rho, G), volume) / 1000 } else { 0 };
+                // ρg per litre first: ρg × litres would pass Q16's range for a fish
+                let lift = if wet[i] {
+                    fx::mul(fx::mul(rho, G) / 1000, volume)
+                } else {
+                    0
+                };
                 let f = force.add(v3(0, lift - fx::mul(mass, G), 0));
                 let mut v = self.vel[i].add(f.scale(fx::div(h, inertia)));
                 // quadratic drag, applied implicitly so a light point cannot overshoot
@@ -262,14 +275,13 @@ impl Line {
                 continue;
             }
             let ea = self.stiffness();
-            if !self.bail_open {
-                // the drag: when the line's stretch says the pull is over the
-                // setting, the spool gives line until it is back at the setting
-                let at_drag = fx::div(fx::mul(self.drag(), self.out), ea);
-                if reach - self.out > at_drag {
-                    self.out = reach - at_drag;
-                    self.slipping = true;
-                }
+            if !self.bail_open && self.tension > self.drag() {
+                // the drag: when the pull passes its setting the spool gives the
+                // stretch above it, (T − drag) × out / EA, so the pull falls back
+                // to the setting
+                let give = fx::div(fx::mul(self.tension - self.drag(), self.out), ea);
+                self.out += give / SUBSTEPS;
+                self.slipping = true;
             }
             if input.wind && !self.bail_open && !self.slipping {
                 self.out -= fx::mul(wind_per_s, h);
@@ -331,7 +343,11 @@ impl Line {
                     }
                     let nrm = d.with_len(ONE);
                     let (al, ga) = if i == n - 1 { (alpha, gamma) } else { (0, 0) };
-                    let rel = if i == n - 1 { pred[i].sub(old[i]).dot(nrm) } else { 0 };
+                    let rel = if i == n - 1 {
+                        pred[i].sub(old[i]).dot(nrm)
+                    } else {
+                        0
+                    };
                     // dλ = (-C - α̃λ - γ ∇C·Δx) / ((1+γ) w + α̃), in Q32
                     let num = -(c << 16) - ((al * tie_l[i]) >> 16) - ga * rel;
                     let den = (((ONE as i64 + ga) * w[i]) >> 16) + al;
@@ -393,7 +409,11 @@ fn respace(pts: &[V3], vel: &[V3], length: Fx) -> (Vec<V3>, Vec<V3>) {
             }
             let l = pts[j + 1].sub(pts[j]).len();
             if walked + l >= want || j + 2 >= n {
-                let t = if l > 0 { fx::div(want - walked, l).clamp(0, ONE) } else { 0 };
+                let t = if l > 0 {
+                    fx::div(want - walked, l).clamp(0, ONE)
+                } else {
+                    0
+                };
                 *op = pts[j].lerp(pts[j + 1], t);
                 *ov = vel[j].lerp(vel[j + 1], t);
                 break;
@@ -516,7 +536,12 @@ pub mod tests {
             // stiff line and a pinned spool: at most the stretch at the
             // breaking tension, 20% of the line out, and only while it holds
             let most = l.out + l.out / 5;
-            assert!(l.snapped || l.chain_length() <= most, "{} > {}", l.chain_length(), most);
+            assert!(
+                l.snapped || l.chain_length() <= most,
+                "{} > {}",
+                l.chain_length(),
+                most
+            );
         }
     }
 
@@ -609,7 +634,10 @@ pub mod tests {
         assert!(far > 10 * ONE, "lure at {far}, line out {out}");
         assert!(out >= far, "the line out covers the lure's distance");
         let (near, out) = cast(true);
-        assert!(near < 2 * ONE && out == 120 * ONE / 100, "a held line keeps the lure close: {near}");
+        assert!(
+            near < 2 * ONE && out == 120 * ONE / 100,
+            "a held line keeps the lure close: {near}"
+        );
     }
 
     #[test]
@@ -620,7 +648,15 @@ pub mod tests {
         l.out = 10 * ONE;
         let lure = l.lure();
         for _ in 0..60 {
-            l.tick(&sea, high(), LineInput { finger: false, wind: true }, lure);
+            l.tick(
+                &sea,
+                high(),
+                LineInput {
+                    finger: false,
+                    wind: true,
+                },
+                lure,
+            );
         }
         let wound = 10 * ONE - l.out;
         assert!((wound - 12 * ONE / 10).abs() < ONE / 50, "wound {wound}");

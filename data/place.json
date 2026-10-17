@@ -1,0 +1,71 @@
+{
+  "_note": "The Open Swell, the first place. Eight wave components authored to give about a 2 m sea at about 9 s (the HUD computes both); one current; a reef 18 m down. Names are keys into strings.json.",
+  "name": "place.open_swell",
+  "sea": {
+    "waves": [
+      { "toward_deg": 200, "length_cm": 12600, "amp_mm": 550, "steep_pct": 55 },
+      { "toward_deg": 215, "length_cm": 7000, "amp_mm": 350, "steep_pct": 60 },
+      { "toward_deg": 185, "length_cm": 4000, "amp_mm": 250, "steep_pct": 65 },
+      { "toward_deg": 230, "length_cm": 2200, "amp_mm": 180, "steep_pct": 65 },
+      { "toward_deg": 170, "length_cm": 1200, "amp_mm": 100, "steep_pct": 60 },
+      { "toward_deg": 245, "length_cm": 600, "amp_mm": 60, "steep_pct": 55 },
+      { "toward_deg": 195, "length_cm": 320, "amp_mm": 30, "steep_pct": 50 },
+      { "toward_deg": 260, "length_cm": 180, "amp_mm": 15, "steep_pct": 40 }
+    ],
+    "tide_amp_mm": 600,
+    "tide_period_minutes": 20,
+    "current_toward_deg": 70,
+    "current_mm_s": 206,
+    "wind_toward_deg": 20,
+    "wind_mm_s": 6200,
+    "density_kg_m3": 1025,
+    "depth_cm": 1800
+  },
+  "start_heading_deg": 200,
+  "fish": [
+    {
+      "name": "fish.mahi",
+      "count": 3,
+      "length_cm": [80, 120],
+      "grams_at_shortest": 4000,
+      "depth_cm": [60, 600],
+      "cruise_mm_s": 800,
+      "burst_mm_s": 4000,
+      "sense_cm": 1800,
+      "splash_cm": 2500,
+      "gape_mm": 90,
+      "lure_speed_mm_s": [500, 2500],
+      "interest_per_s": 45,
+      "hold_ms": 1000,
+      "strength_n": 24,
+      "stamina_s": 60,
+      "jumps": true,
+      "colours": ["#1f8a6a", "#c8c83a", "#f0e070", "#2a7aa0"],
+      "pattern": "spots",
+      "depth_pct": 26,
+      "width_pct": 8
+    },
+    {
+      "name": "fish.snapper",
+      "count": 4,
+      "length_cm": [40, 70],
+      "grams_at_shortest": 1000,
+      "depth_cm": [800, 1700],
+      "cruise_mm_s": 400,
+      "burst_mm_s": 2000,
+      "sense_cm": 1000,
+      "splash_cm": 1200,
+      "gape_mm": 60,
+      "lure_speed_mm_s": [100, 1000],
+      "interest_per_s": 60,
+      "hold_ms": 1000,
+      "strength_n": 18,
+      "stamina_s": 45,
+      "jumps": false,
+      "colours": ["#c4473a", "#e8846a", "#f7ddd0", "#d4553f"],
+      "pattern": "plain",
+      "depth_pct": 30,
+      "width_pct": 11
+    }
+  ]
+}
