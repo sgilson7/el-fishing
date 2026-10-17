@@ -55,6 +55,8 @@ pub struct LineSpec {
     pub rod_bend_max_cm: i32,
     /// Gauss-Seidel passes over the line each substep.
     pub iterations: usize,
+    /// Drag along the line as a share of drag across it, percent.
+    pub along_drag_pct: i32,
 }
 
 /// What the player does with the reel this tick.
@@ -246,11 +248,24 @@ impl Line {
                 };
                 let f = force.add(v3(0, lift - fx::mul(mass, G), 0));
                 let mut v = self.vel[i].add(f.scale(fx::div(h, inertia)));
-                // quadratic drag, applied implicitly so a light point cannot overshoot
+                // quadratic drag, applied implicitly so a light point cannot
+                // overshoot; a point of line drags far less along the line than
+                // across it (Morison: the along-line share is `along_drag_pct`)
                 let rel = v.sub(flow);
                 let c = fx::mul(rho, area);
-                let k = fx::mul(fx::div(fx::mul(c, rel.len()), inertia), h);
-                let after = flow.add(rel.scale(fx::div(ONE, ONE + k)));
+                let along = if is_end || i + 1 >= n {
+                    V3::ZERO
+                } else {
+                    self.pts[i + 1].sub(self.pts[i - 1]).with_len(ONE)
+                };
+                let rel_t = along.scale(rel.dot(along) as Fx);
+                let rel_n = rel.sub(rel_t);
+                let k_n = fx::mul(fx::div(fx::mul(c, rel_n.len()), inertia), h);
+                let c_t = fx::mul(c, s.along_drag_pct * ONE / 100);
+                let k_t = fx::mul(fx::div(fx::mul(c_t, rel_t.len()), inertia), h);
+                let after = flow
+                    .add(rel_n.scale(fx::div(ONE, ONE + k_n)))
+                    .add(rel_t.scale(fx::div(ONE, ONE + k_t)));
                 let drag = after.sub(v).scale(fx::div(inertia, h));
                 felt[i] = if is_end { V3::ZERO } else { f.add(drag) };
                 v = after;
@@ -454,6 +469,7 @@ pub mod tests {
             rod_stiffness_n_m: 25,
             rod_bend_max_cm: 60,
             iterations: 12,
+            along_drag_pct: 2,
         }
     }
 

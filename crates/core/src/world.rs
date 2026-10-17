@@ -132,6 +132,8 @@ pub struct World {
     lure_was_wet: bool,
     prev_end: V3,
     pub lure_vel: V3,
+    /// Where and when the lure last struck the water, for the rings the page draws.
+    pub last_splash: Option<(V3, u64)>,
 }
 
 impl World {
@@ -173,6 +175,7 @@ impl World {
             lure_was_wet: false,
             prev_end: tip,
             lure_vel: V3::ZERO,
+            last_splash: None,
         }
     }
 
@@ -231,7 +234,8 @@ impl World {
                 EndLoad {
                     mass: f.mass,
                     volume: fx::div(f.mass, ONE * 1025 / 1000),
-                    area: fx::mul(fx::mul(f.length, f.length), ONE / 100),
+                    // ½ C_d A for a fish towed head first: about a thousandth of its length squared
+                    area: fx::mul(fx::mul(f.length, f.length), ONE / 1000),
                     force,
                 }
             }
@@ -301,13 +305,17 @@ impl World {
                 self.fish[i] = Fish::spawn(s, &self.place.fish[s], self.hull.pos, surface, &mut self.rng);
             }
         }
+        if scene.splash {
+            self.last_splash = Some((scene.lure, self.tick));
+        }
         self.lure_was_wet = scene.lure_wet;
     }
 
     fn scene(&self, with_splash: bool) -> Scene {
         let e = self.line.end();
         let surface = self.sea.height(e.x, e.z);
-        let wet = e.y < surface;
+        // a lure already in a fish's mouth is no lure to the others
+        let wet = e.y < surface && !(with_splash && self.holder.is_some());
         Scene {
             lure: e,
             lure_vel: self.lure_vel,

@@ -35,6 +35,8 @@ pub struct FishSpec {
     pub interest_per_s: i32,
     /// How long it holds a bitten lure before it spits it out, ms.
     pub hold_ms: i32,
+    /// How long a strike lasts before a lure that got away counts as a miss, ms.
+    pub strike_ms: i32,
     /// Pull at full stamina, N.
     pub strength_n: i32,
     /// Seconds of full pull before it tires.
@@ -269,33 +271,30 @@ impl Fish {
                 }
             }
             Mood::Strike => {
-                // a rush at the aim point, mouth opening; the bite is judged at the aim
-                let mouth = self.mouth_at();
-                let gap = self.aim.sub(mouth);
-                let want = if gap.len() > ONE / 20 {
-                    gap.with_len(burst)
+                // a rush at the lure with the mouth opening; the bite counts the
+                // moment the hook is inside the mouth zone with the mouth open,
+                // and a lure that gets away before the strike is spent is a miss
+                let gap = s.lure.sub(self.mouth_at());
+                let want = if gap.len() > ONE / 50 {
+                    gap.with_len(burst).add(s.lure_vel.ratio(1, 2))
                 } else {
-                    V3::ZERO
+                    s.lure_vel
                 };
                 self.steer(spec, want);
                 self.mouth = (self.mouth + ONE / 6).min(ONE);
-                let arrived =
-                    self.aim.sub(self.mouth_at()).len() < ONE / 10 || self.timer > TICKS_PER_SECOND as i32;
-                if arrived {
-                    if self.in_zone(spec, s.lure) {
-                        self.mood(Mood::Hold);
-                        said = Some(Happened::Bit);
+                if self.mouth >= ONE / 2 && self.in_zone(spec, s.lure) {
+                    self.mood(Mood::Hold);
+                    said = Some(Happened::Bit);
+                } else if self.timer * 1000 > spec.strike_ms * TICKS_PER_SECOND as i32 {
+                    self.misses += 1;
+                    self.mouth = 0;
+                    self.interest = 40 * ONE;
+                    self.mood(if self.misses >= 3 {
+                        Mood::Flee
                     } else {
-                        self.misses += 1;
-                        self.mouth = 0;
-                        self.interest = 40 * ONE;
-                        self.mood(if self.misses >= 3 {
-                            Mood::Flee
-                        } else {
-                            Mood::Follow
-                        });
-                        said = Some(Happened::Missed);
-                    }
+                        Mood::Follow
+                    });
+                    said = Some(Happened::Missed);
                 }
             }
             Mood::Hold | Mood::Hooked => {}
@@ -400,6 +399,7 @@ pub mod tests {
             lure_speed_mm_s: [100, 1000],
             interest_per_s: 60,
             hold_ms: 1000,
+            strike_ms: 700,
             strength_n: 18,
             stamina_s: 45,
             jumps: false,
@@ -452,16 +452,23 @@ pub mod tests {
         }
     }
 
+    /// A snapper that cannot swim, so only the hook's place decides a strike.
+    fn still() -> FishSpec {
+        FishSpec {
+            burst_mm_s: 0,
+            ..snapper()
+        }
+    }
+
     #[test]
     fn a_strike_with_the_hook_inside_the_mouth_zone_bites() {
-        // gape 6 cm: the zone reaches 6 cm from the mouth; the hook sits 4 cm off the aim
+        // gape 6 cm: the zone reaches 6 cm from the mouth; the hook sits 4 cm off it
         let mut f = fish_at(v3(0, -10 * ONE, 0));
-        f.aim = f.mouth_at();
         f.mood = Mood::Strike;
-        let hook = f.aim.add(v3(4 * ONE / 100, 0, 0));
+        let hook = f.mouth_at().add(v3(4 * ONE / 100, 0, 0));
         let mut said = None;
         for _ in 0..70 {
-            said = f.tick(&snapper(), &scene(hook), &mut Rng::new(2)).or(said);
+            said = f.tick(&still(), &scene(hook), &mut Rng::new(2)).or(said);
             if f.mood != Mood::Strike {
                 break;
             }
@@ -472,14 +479,13 @@ pub mod tests {
 
     #[test]
     fn a_strike_with_the_hook_outside_the_mouth_zone_misses() {
-        // 8 cm off the aim: 2 cm outside the zone
+        // 8 cm off the mouth: 2 cm outside the zone, for the whole 0.7 s strike
         let mut f = fish_at(v3(0, -10 * ONE, 0));
-        f.aim = f.mouth_at();
         f.mood = Mood::Strike;
-        let hook = f.aim.add(v3(8 * ONE / 100, 0, 0));
+        let hook = f.mouth_at().add(v3(8 * ONE / 100, 0, 0));
         let mut said = None;
         for _ in 0..70 {
-            said = f.tick(&snapper(), &scene(hook), &mut Rng::new(2)).or(said);
+            said = f.tick(&still(), &scene(hook), &mut Rng::new(2)).or(said);
             if f.mood != Mood::Strike {
                 break;
             }

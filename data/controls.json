@@ -1,0 +1,24 @@
+{
+  "_note": "Keys to the core's key names (numbers().keys gives each name's bit). Mouse buttons by their number. Keys in acts send an action instead.",
+  "keys": {
+    "KeyQ": "left_shoulder_up",
+    "KeyA": "left_shoulder_down",
+    "KeyW": "left_elbow_bend",
+    "KeyS": "left_elbow_straighten",
+    "KeyI": "right_shoulder_up",
+    "KeyK": "right_shoulder_down",
+    "KeyO": "right_elbow_bend",
+    "KeyL": "right_elbow_straighten",
+    "KeyF": "finger",
+    "Space": "wind",
+    "ArrowUp": "pedal",
+    "ArrowDown": "back_pedal",
+    "ArrowLeft": "drift_left",
+    "ArrowRight": "drift_right"
+  },
+  "mouse": { "2": "scope" },
+  "acts": {
+    "Escape": ["menu.toggle", ""],
+    "Enter": ["screen.show", "fishing"]
+  }
+}

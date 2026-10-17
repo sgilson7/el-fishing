@@ -49,7 +49,7 @@
     "shortest_out_cm": 30,
     "longest_out_m": 150,
     "break_dn": 356,
-    "drag_dn": 71,
+    "drag_dn": 100,
     "diameter_um": 280,
     "density_kg_m3": 1780,
     "point_floor_mg": 400,
@@ -59,6 +59,7 @@
     "stretch_at_break_pct": 20,
     "damping_pct": 20,
     "iterations": 12,
+    "along_drag_pct": 2,
     "wind_per_turn_cm": 60,
     "turns_per_s_x10": 20,
     "rod_stiffness_n_m": 25,
@@ -66,6 +67,6 @@
   },
   "hook_set_dn": 40,
   "hook_set_ms": 250,
-  "land_reach_cm": 250,
+  "land_reach_cm": 350,
   "land_line_cm": 300
 }

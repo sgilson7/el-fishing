@@ -8,16 +8,37 @@
        form-action 'none' blocks form posts. A meta policy cannot stop data
        leaving by navigation, so the browser check still watches requests. -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
-  <title>Builder tool</title>
+  <title>Extremely Lifelike Fishing</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body data-ready="false">
-  <main>
-    <h1 id="title"></h1>
+<body data-ready="false" data-screen="">
+  <main id="stage">
+    <canvas id="gl"></canvas>
+    <div id="scope" hidden>
+      <div class="vignette"></div>
+      <div class="zone" hidden></div>
+      <div class="scope-card panel">
+        <div class="eyebrow scope-zoom"></div>
+        <div class="scope-fish"></div>
+        <div class="scope-status"></div>
+      </div>
+    </div>
     <div id="panels"></div>
-    <p id="message" role="status"></p>
+    <section id="arms" class="panel" hidden></section>
+    <section id="ring" class="panel" hidden>
+      <svg viewBox="0 0 124 124" aria-hidden="true">
+        <circle class="track" cx="62" cy="62" r="46"></circle>
+        <circle class="fill" cx="62" cy="62" r="46"></circle>
+        <line class="break" x1="62" y1="8" x2="62" y2="26"></line>
+      </svg>
+      <div class="ring-text"><b class="ring-percent"></b><small class="ring-of"></small></div>
+      <div class="eyebrow ring-label"></div>
+    </section>
+    <p id="message" class="panel" role="status" hidden></p>
+    <nav id="keys" class="panel" hidden></nav>
+    <p id="error" role="alert"></p>
   </main>
-  <noscript><p>This page needs JavaScript and WebAssembly.</p></noscript>
+  <noscript><p>This game needs JavaScript, WebAssembly and WebGL.</p></noscript>
   <script type="module" src="app.js"></script>
 </body>
 </html>

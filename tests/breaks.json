@@ -1,16 +1,100 @@
 [
   {
-    "name": "an empty title is refused",
-    "file": "crates/core/src/page.rs",
-    "find": "if strings.title.trim().is_empty() {",
-    "replace": "if false {",
-    "test": "an_empty_title_is_rejected_by_name"
+    "name": "a drift keeps the bow in its place",
+    "file": "crates/core/src/hull.rs",
+    "find": "        self.pos = self.pos.sub(moved);\n",
+    "replace": "        self.pos = self.pos.sub(moved.scale(0));\n",
+    "test": "a_drift_turns_the_stern_about_a_still_bow"
   },
   {
-    "name": "an unknown action is refused",
-    "file": "crates/core/src/api.rs",
-    "find": "other => return Err(format!(\"Unknown action \\\"{other}\\\".\")),",
-    "replace": "_ => {}",
-    "test": "act_refuses_an_unknown_action"
+    "name": "a hull floats at the depth its mass predicts",
+    "file": "crates/core/src/hull.rs",
+    "find": "                let f = fx::mul(rho_g_a, d);",
+    "replace": "                let f = fx::mul(rho_g_a, d) * 2;",
+    "test": "a_still_hull_settles_where_it_displaces_its_own_mass"
+  },
+  {
+    "name": "a wave's phase steps by its period",
+    "file": "crates/core/src/sea.rs",
+    "find": "    ((1u64 << 48) / (period as u64 * TICKS_PER_SECOND as u64)) as u32",
+    "replace": "    ((1u64 << 48) / (period as u64 * 50)) as u32",
+    "test": "a_ten_second_wave_steps_a_six_hundredth_of_a_turn_a_tick"
+  },
+  {
+    "name": "the tide rises and falls",
+    "file": "crates/core/src/sea.rs",
+    "find": "        fx::mul(self.tide_amp, fx::sin((self.tide_phase >> 16) as i32))",
+    "replace": "        0",
+    "test": "the_tide_reaches_its_amplitude_a_quarter_period_in"
+  },
+  {
+    "name": "the current carries the kayak",
+    "file": "crates/core/src/hull.rs",
+    "find": "            let water = sea.surface_velocity(self.pos.x, self.pos.z);",
+    "replace": "            let water = V3::ZERO;",
+    "test": "the_current_carries_an_idle_kayak_and_stops_when_turned_off"
+  },
+  {
+    "name": "the line snaps above its breaking tension",
+    "file": "crates/core/src/line.rs",
+    "find": "        if self.load > self.break_tension() {",
+    "replace": "        if false {",
+    "test": "a_pull_over_the_breaking_tension_snaps_the_line_and_one_under_does_not"
+  },
+  {
+    "name": "the drag gives line above its setting",
+    "file": "crates/core/src/line.rs",
+    "find": "                self.out += give / SUBSTEPS;",
+    "replace": "                self.out += give * 0;",
+    "test": "the_drag_lets_line_slip_above_its_setting"
+  },
+  {
+    "name": "a bite needs the hook inside the mouth zone",
+    "file": "crates/core/src/fish.rs",
+    "find": "        hook.sub(self.mouth_at()).len() <= self.zone(spec)",
+    "replace": "        hook.sub(self.mouth_at()).len() <= self.zone(spec) * 2",
+    "test": "a_strike_with_the_hook_outside_the_mouth_zone_misses"
+  },
+  {
+    "name": "a hook set hooks a fish that holds the lure",
+    "file": "crates/core/src/world.rs",
+    "find": "                Mood::Hold if set => {",
+    "replace": "                Mood::Hold if false => {",
+    "test": "a_hook_set_while_a_fish_holds_the_lure_hooks_it"
+  },
+  {
+    "name": "only the arm keys move the rod",
+    "file": "crates/core/src/world.rs",
+    "find": "                both(RIGHT_SHOULDER_UP, RIGHT_SHOULDER_DOWN),",
+    "replace": "                both(RIGHT_SHOULDER_UP | PEDAL, RIGHT_SHOULDER_DOWN),",
+    "test": "only_the_arm_keys_move_the_rod"
+  },
+  {
+    "name": "a fresh fish cannot be landed",
+    "file": "crates/core/src/world.rs",
+    "find": "        let spent = f.stamina < ONE / 4;",
+    "replace": "        let spent = f.stamina < ONE * 2;",
+    "test": "a_spent_fish_brought_in_close_is_landed"
+  },
+  {
+    "name": "the scope changes no rule",
+    "file": "crates/core/src/session.rs",
+    "find": "                self.world.step(k & !bits::SCOPE);",
+    "replace": "                self.world.step(k & !bits::SCOPE);\n                self.world.arms.slow = k & bits::SCOPE != 0;",
+    "test": "the_scope_changes_no_rule"
+  },
+  {
+    "name": "a fish's weight grows as the cube of its length",
+    "file": "crates/core/src/fish.rs",
+    "find": "fx::mul(spec.grams_at_shortest * ONE / 1000, fx::mul(r, fx::mul(r, r)))",
+    "replace": "fx::mul(spec.grams_at_shortest * ONE / 1000, fx::mul(r, r))",
+    "test": "weight_grows_as_the_cube_of_length"
+  },
+  {
+    "name": "a spent fish pulls less",
+    "file": "crates/core/src/fish.rs",
+    "find": "                dir.scale(fx::mul(strength, self.stamina.max(ONE / 20)))",
+    "replace": "                dir.scale(strength)",
+    "test": "a_hooked_fish_tires_and_pulls_less"
   }
 ]
