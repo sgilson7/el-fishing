@@ -44,6 +44,10 @@ def run(page, check, engine):
     start_out = GEAR["line"]["start_out_cm"] / 100
     page.wait_for_function("() => Number(document.body.dataset.tick) > 2")
     check(abs(float(page.get_attribute("body", "data-out")) - start_out) < 0.05, f"line out starts at {start_out} m")
+    # the swell worked by hand from data/place.json: Hs = 4 sqrt(sum a^2 / 2) with
+    # amplitudes 0.55 0.35 0.25 0.18 0.10 0.06 0.03 0.015 m is 2.07 m; the tallest
+    # wave is 126 m long, so its period is sqrt(2 pi 126 / 9.81) = 8.98 s
+    check("2.1 m, 9 s" in page.inner_text("#place"), "the swell reads 2.1 m, 9 s, as worked by hand")
     check(page.is_visible("#ring"), "the tension ring is shown")
     check(page.is_visible("#arms"), "the arm-key panel is open before the first catch")
 
