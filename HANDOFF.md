@@ -40,6 +40,8 @@ Round 2 closed R1.1, R1.2, R1.6, R1.8, R1.14, R1.17, R1.18 and R1.21: the person
 - R2.10 the drag is 10 N, not the plan's 7.1 N.
 - R2.14 play the Open Swell and say how catching a fish feels; the scripted angler is not a person.
 - R2.15 the round-2 strings in `data/strings.json`.
+- R2.16 the website's two diverged branches, and Mage Tower Battle's listing, which is on `origin` but not live.
+- R2.17 the machine address in the public commit history.
 
 ## Mistakes so far
 
@@ -47,8 +49,11 @@ Round 1: a bibliography field from memory (R1.11); labels projected with a stale
 
 ## What passed
 
-To be filled in at the end of the round with `./scripts/check.sh`'s result and the live browser check.
+- `./scripts/check.sh`: BUILDER CHECK PASSED on 17 October 2026 (format, lint, 89 tests from `./scripts/count-tests.sh`, release build, import audit, art, notebook, and the browser check in Chromium, Firefox and WebKit).
+- `python3 scripts/break_tests.py`: 14 of 14 breaks caught.
+- Published with `./scripts/publish.sh` from 95faae9 to `https://sgilson7.github.io/el-fishing/`; the browser check against that address passed in all three engines.
+- The website lists the game in its 3D run (build 651a8ae4, local `website` commit e77223c); `make check`, `make packet`, `make gate` and `make gate-live` passed.
 
 ## The next action
 
-Publish to `el-fishing`, check the live address, then add the game to the website with the `el-fishing` chip.
+Play it yourself and write what you find as rows in `TRIAGE.md` (T2 onward): how the cast feels, whether the fish are too eager or too shy, how long a fight lasts. Then the next round is the next place.

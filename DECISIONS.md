@@ -23,3 +23,7 @@ The agent decided: the grant is written into `BRIEF.md`'s Autonomy paragraph wor
 > as in the website extension sgilson7.github.io/el-fishing
 
 The agent decided: the plan is approved in advance for this MVP, and every open question takes the agent's recommendation (listed in `PLAN.md`, "Answers"). Where a question had no recommendation, the agent chose and says so there. The build is the Open Swell only. Publishing is granted: repository `el-fishing`, GitHub Pages at `sgilson7.github.io/el-fishing`, then a chip tagged `el-fishing` on the person's website, deployed. Scope: this MVP.
+
+## 2026-10-17, round 2: published
+
+Under the grant above: the public repository `sgilson7/el-fishing` was created, `dist/` was published from 95faae9 to GitHub Pages at `https://sgilson7.github.io/el-fishing/`, and the browser check passed against the live address. The website lists the game with the route `el-fishing` (local `website` commit e77223c, build 651a8ae4), deployed and gated live. Scope of the grant: used.
