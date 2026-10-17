@@ -55,7 +55,11 @@ Terms from fishing and paddling, defined in `GLOSSARY.md` before any string uses
 
 ## Autonomy
 
-**Round 4 (17 October 2026): no publishing grant.** The person asked for the river map, a scope that sees through the kayak, a shorter cast, a fish log, one casting arm, a fight cue, a wake, a battery power wind and a speedboat (`TRIAGE.md` T8 to T17), and named no publishing. The agent builds and checks locally and leaves publishing to the person.
+**Round 4 (17 October 2026): no publishing grant.** The person asked for the river map, a scope that sees through the kayak, a shorter cast, a fish log, one casting arm, a fight cue, a wake, a battery power wind and a speedboat (`TRIAGE.md` T8 to T17), and named no publishing. The agent builds and checks locally and leaves publishing to the person. After reading the round's report, the person wrote, word for word: 
+
+> publish
+
+So the agent publishes round 4 to `sgilson7.github.io/el-fishing` and runs the browser check against that address. The website listing is unchanged.
 
 **Round 2 (17 October 2026): the plan is approved in advance.** The person wrote, word for word:
 

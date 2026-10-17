@@ -69,7 +69,7 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R4.17 | finding | The wake grew with speed over the ground (T14). | A kayak drifting with a river would trail a wake through still water. | The wake grows with speed through the water and is whole at 0.8 m/s; its foam and ripple are stronger. | `session.rs`, `data/look.json` (`wake_full_cm_s`, `uWakeK`) | done |
 | R4.18 | worklist | Round 4 added a place, two species, rocks and a craft. | The names (Ledge River from the mockups; rainbow trout; smallmouth bass, new), the rocks' places and the fish counts are the agent's lists. | For the person to read in `data/places.json` and `data/gear.json`. | | person |
 | R4.19 | worklist | Round 4 added strings: the title choices, the fight cue, the battery, the fish log, the landed card, the river and speedboat how-tos, and glossary entries for Battery, Eddy, Haul and Speedboat. | Every string is the agent's. | For the person to read in `data/strings.json` and `GLOSSARY.md`. | | person |
-| R4.20 | worklist | The brief grants publishing for the MVP. | This round's request names no publishing. | Built and checked locally; not published. Publishing is the person's call. | | person |
+| R4.20 | worklist | The brief grants publishing for the MVP. | This round's request names no publishing. | Built and checked locally, then published when the person wrote "publish" (`BRIEF.md`, Round 4). | | done |
 
 ## Strings written by the agent
 

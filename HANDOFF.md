@@ -45,7 +45,6 @@ Round 4 (T8 to T17):
 - R4.14 the fish log lasts the visit only.
 - R4.18 the river's names, rocks and fish counts.
 - R4.19 the round-4 strings and glossary entries.
-- R4.20 publishing: this round is built and checked locally, not published.
 
 From earlier rounds:
 
@@ -69,7 +68,7 @@ Round 1: a bibliography field from memory (R1.11); labels projected with a stale
 
 - Round 4, at 14b18f5 and again at 803e9a4 (the close-up without the rod): `./scripts/check.sh` BUILDER CHECK PASSED on 17 October 2026 (format, lint, 113 tests from `./scripts/count-tests.sh` with 1 ignored, release build, import audit, art, notebook, and the browser check in Chromium, Firefox and WebKit, which now also drives the battery, the fish log, the Ledge River and the speedboat).
 - `python3 scripts/break_tests.py`: 34 of 34 breaks caught.
-- Not published. The live game is still round 3's build 61d6cbc (R4.20).
+- Published on the person's word "publish" (R4.20) with `./scripts/publish.sh`.
 
 ## The next action
 
