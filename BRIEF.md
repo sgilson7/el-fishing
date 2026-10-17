@@ -55,6 +55,12 @@ Terms from fishing and paddling, defined in `GLOSSARY.md` before any string uses
 
 ## Autonomy
 
+**Round 6: publishing granted.** The person wrote, word for word:
+
+> publish them now, also make the paddlebout about 3x as fast and not have the insane movement problem the speedboat had. also you should be able to increase the length of your line at your boat before you cast, and it should be easier to hold the line in place in the water, then publish again
+
+So the agent publishes round 5 at once, builds round 6 (T22 to T24), and publishes that too, with the browser check against the live address each time.
+
 **Round 5: no publishing grant.** The person asked for a storm weather for the Open Swell chosen from a dropdown, a white-water river, mid-ocean waves and a speedboat that handles like one (T18 to T21), and named no publishing.
 
 **Round 4 (17 October 2026): no publishing grant.** The person asked for the river map, a scope that sees through the kayak, a shorter cast, a fish log, one casting arm, a fight cue, a wake, a battery power wind and a speedboat (`TRIAGE.md` T8 to T17), and named no publishing. The agent builds and checks locally and leaves publishing to the person. After reading the round's report, the person wrote, word for word: 
