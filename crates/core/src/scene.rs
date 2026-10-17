@@ -64,7 +64,8 @@ pub fn build(w: &World, look: &Look, view: &View) -> Batch {
         }
         angler(&mut b, w, look);
     }
-    if w.fishing() {
+    // the rod and line stay out of the close-up of a landed fish
+    if w.fishing() && view.shown.is_none() {
         rod_and_line(&mut b, w, look, view.own_body);
     }
     for (i, f) in w.fish.iter().enumerate() {
