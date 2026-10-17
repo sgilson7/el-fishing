@@ -68,7 +68,7 @@ Round 1: a bibliography field from memory (R1.11); labels projected with a stale
 
 - Round 4, at 14b18f5 and again at 803e9a4 (the close-up without the rod): `./scripts/check.sh` BUILDER CHECK PASSED on 17 October 2026 (format, lint, 113 tests from `./scripts/count-tests.sh` with 1 ignored, release build, import audit, art, notebook, and the browser check in Chromium, Firefox and WebKit, which now also drives the battery, the fish log, the Ledge River and the speedboat).
 - `python3 scripts/break_tests.py`: 34 of 34 breaks caught.
-- Published on the person's word "publish" (R4.20) with `./scripts/publish.sh`.
+- Published on the person's word "publish" (R4.20) with `./scripts/publish.sh` from 0a6f657 (build 8bb8364420f0); the browser check against `https://sgilson7.github.io/el-fishing` passed in Chromium, Firefox and WebKit.
 
 ## The next action
 
