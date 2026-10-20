@@ -1,0 +1,39 @@
+{
+  "_note": "Keys to the core's key names (numbers().keys gives each name's bit). Mouse buttons by their number. Keys in acts send an action instead. A drag with the mouse buttons in drag.buttons (a bit mask, 1 the left) sends drag.act with the pixels moved across and down.",
+  "keys": {
+    "KeyW": "shoulder_up",
+    "KeyS": "shoulder_down",
+    "KeyA": "elbow_bend",
+    "KeyD": "elbow_straighten",
+    "KeyF": "finger",
+    "Space": "wind",
+    "ArrowUp": "pedal",
+    "ArrowDown": "back_pedal",
+    "ArrowLeft": "drift_left",
+    "ArrowRight": "drift_right",
+    "KeyE": "power_wind",
+    "KeyQ": "let_out",
+    "Digit1": "rod_1",
+    "Digit2": "rod_2",
+    "Digit3": "rod_3",
+    "Digit4": "rod_4",
+    "KeyB": "burner"
+  },
+  "mouse": {
+    "2": "scope"
+  },
+  "drag": {
+    "buttons": 1,
+    "act": "camera.turn"
+  },
+  "acts": {
+    "Escape": [
+      "menu.toggle",
+      ""
+    ],
+    "Enter": [
+      "key.enter",
+      ""
+    ]
+  }
+}

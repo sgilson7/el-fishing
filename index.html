@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Reference default. connect-src 'self' keeps fetches on this origin;
+       'wasm-unsafe-eval' lets the page compile its own WebAssembly module;
+       form-action 'none' blocks form posts. A meta policy cannot stop data
+       leaving by navigation, so the browser check still watches requests. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Extremely Lifelike Fishing</title>
+  <link rel="stylesheet" href="style.css?v=67225dcc5244">
+</head>
+<body data-ready="false" data-screen="">
+  <main id="stage">
+    <canvas id="gl"></canvas>
+    <div id="scope" hidden>
+      <div class="vignette"></div>
+      <div class="zone" hidden></div>
+      <div class="scope-card panel">
+        <div class="eyebrow scope-zoom"></div>
+        <div class="scope-fish"></div>
+        <div class="scope-status"></div>
+      </div>
+    </div>
+    <div id="panels"></div>
+    <section id="arms" class="panel" hidden></section>
+    <section id="ring" class="panel" hidden>
+      <svg viewBox="0 0 124 124" aria-hidden="true">
+        <circle class="track" cx="62" cy="62" r="46"></circle>
+        <circle class="fill" cx="62" cy="62" r="46"></circle>
+        <line class="break" x1="62" y1="8" x2="62" y2="26"></line>
+      </svg>
+      <div class="ring-text"><b class="ring-percent"></b><small class="ring-of"></small></div>
+      <div class="eyebrow ring-label"></div>
+    </section>
+    <p id="message" class="panel" role="status" hidden></p>
+    <p id="cue" class="panel" hidden></p>
+    <section id="dial" class="panel" hidden>
+      <div class="eyebrow dial-label"></div>
+      <svg viewBox="0 0 132 132" aria-hidden="true">
+        <circle class="face" cx="66" cy="66" r="54" pathLength="1"></circle>
+        <circle class="spot" cx="66" cy="66" r="54" pathLength="1"></circle>
+        <circle class="mid" cx="66" cy="66" r="54" pathLength="1"></circle>
+        <line class="needle" x1="66" y1="66" x2="66" y2="4"></line>
+        <circle class="hub" cx="66" cy="66" r="7"></circle>
+      </svg>
+      <b class="dial-result"></b>
+      <div class="dial-streak"></div>
+      <div class="dial-stalled"></div>
+    </section>
+    <section id="battery" class="panel" hidden>
+      <div class="eyebrow battery-label"></div>
+      <div class="bar"><i></i></div>
+      <div class="battery-status"></div>
+    </section>
+    <section id="race" hidden>
+      <div class="panel race-card">
+        <div class="eyebrow race-where"></div>
+        <div class="race-pos"><b class="race-place"></b><small class="race-of"></small></div>
+        <div class="race-rows"></div>
+      </div>
+      <div class="panel race-speed">
+        <div class="race-kmh"><b class="race-v"></b><small class="race-unit"></small></div>
+        <div class="eyebrow race-arrows-label"></div>
+        <div class="race-arrows"></div>
+        <div class="eyebrow race-nitrous-label"></div>
+        <div class="bar race-nitrous"><i></i></div>
+        <div class="race-nitrous-text"></div>
+      </div>
+      <div class="panel race-map">
+        <div class="eyebrow race-map-label"></div>
+        <svg viewBox="0 0 1000 1000" aria-hidden="true">
+          <path class="track"></path>
+          <g class="ships"></g>
+          <g class="dots"></g>
+        </svg>
+      </div>
+      <div class="race-banner"></div>
+      <p class="panel race-warn"></p>
+    </section>
+    <nav id="keys" class="panel" hidden></nav>
+    <p id="error" role="alert"></p>
+  </main>
+  <noscript><p>This game needs JavaScript, WebAssembly and WebGL.</p></noscript>
+  <script type="module" src="app.js?v=67225dcc5244"></script>
+</body>
+</html>

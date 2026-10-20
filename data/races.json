@@ -1,0 +1,1518 @@
+[
+  {
+    "_note": "Container Run (T28), after the journal's course plan: one lap of the Open Swell anticlockwise from the start line, metres. Buoys alternate sides of the middle line so the line through them weaves; red ones (keep right) sit left of it and yellow ones (keep left) right of it. The container ship's bow crosses the course's first lane crossing a little after a gold-pace racer reaches it; the tanker runs west past the course's north tip. Ships move on fixed timetables from the race's first tick.",
+    "name": "race.container_run",
+    "place": "place.open_swell",
+    "boat": "craft.speedboat",
+    "course": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -120
+      ],
+      [
+        40,
+        -220
+      ],
+      [
+        120,
+        -300
+      ],
+      [
+        150,
+        -400
+      ],
+      [
+        110,
+        -500
+      ],
+      [
+        20,
+        -560
+      ],
+      [
+        -90,
+        -600
+      ],
+      [
+        -200,
+        -560
+      ],
+      [
+        -260,
+        -470
+      ],
+      [
+        -250,
+        -360
+      ],
+      [
+        -200,
+        -250
+      ],
+      [
+        -150,
+        -150
+      ],
+      [
+        -80,
+        -60
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "width_m": 80,
+    "start": {
+      "lights": 3,
+      "light_ms": 1000,
+      "perfect_ms": 250,
+      "perfect_nitrous_ms": 1000,
+      "grid_cm": [
+        [
+          350,
+          1200
+        ],
+        [
+          -1050,
+          1200
+        ],
+        [
+          -350,
+          1200
+        ],
+        [
+          1050,
+          1200
+        ]
+      ]
+    },
+    "buoys": [
+      {
+        "at": [
+          7,
+          -66
+        ],
+        "keep": "right"
+      },
+      {
+        "at": [
+          8,
+          -158
+        ],
+        "keep": "left"
+      },
+      {
+        "at": [
+          85,
+          -255
+        ],
+        "keep": "right"
+      },
+      {
+        "at": [
+          128,
+          -352
+        ],
+        "keep": "left"
+      },
+      {
+        "at": [
+          138,
+          -448
+        ],
+        "keep": "right"
+      },
+      {
+        "at": [
+          -37,
+          -573
+        ],
+        "keep": "left"
+      },
+      {
+        "at": [
+          -125,
+          -595
+        ],
+        "keep": "right"
+      },
+      {
+        "at": [
+          -248,
+          -416
+        ],
+        "keep": "left"
+      },
+      {
+        "at": [
+          -231,
+          -302
+        ],
+        "keep": "right"
+      },
+      {
+        "at": [
+          -174,
+          -213
+        ],
+        "keep": "left"
+      },
+      {
+        "at": [
+          -121,
+          -101
+        ],
+        "keep": "right"
+      },
+      {
+        "at": [
+          -36,
+          -36
+        ],
+        "keep": "left"
+      }
+    ],
+    "arrows": 5,
+    "arrow_top_pct": 3,
+    "rings": [
+      {
+        "at": [
+          120,
+          -300
+        ],
+        "y_cm": 300,
+        "heading_deg": 149,
+        "radius_cm": 650
+      },
+      {
+        "at": [
+          -206,
+          -558
+        ],
+        "y_cm": 650,
+        "heading_deg": 290,
+        "radius_cm": 500
+      },
+      {
+        "at": [
+          -150,
+          -150
+        ],
+        "y_cm": 300,
+        "heading_deg": 32,
+        "radius_cm": 650
+      }
+    ],
+    "nitrous_top_pct": 30,
+    "nitrous_ms": 2500,
+    "nitrous_kick_cm_s": 300,
+    "ramps": [
+      {
+        "at": [
+          30,
+          -195
+        ],
+        "heading_deg": 158,
+        "length_cm": 1000,
+        "height_cm": 260,
+        "width_cm": 800
+      },
+      {
+        "at": [
+          -178,
+          -568
+        ],
+        "heading_deg": 290,
+        "length_cm": 1200,
+        "height_cm": 320,
+        "width_cm": 800
+      }
+    ],
+    "ships": [
+      {
+        "kind": "ship.container",
+        "bow": [
+          211,
+          -520
+        ],
+        "heading_deg": 90,
+        "speed_mm_s": 10300,
+        "length_m": 330,
+        "beam_m": 48,
+        "bow_pct": 12
+      },
+      {
+        "kind": "ship.tanker",
+        "bow": [
+          244,
+          -250
+        ],
+        "heading_deg": 270,
+        "speed_mm_s": 6200,
+        "length_m": 250,
+        "beam_m": 44,
+        "bow_pct": 12
+      },
+      {
+        "kind": "ship.superyacht",
+        "bow": [
+          214,
+          -385
+        ],
+        "heading_deg": 165,
+        "speed_mm_s": 0,
+        "length_m": 72,
+        "beam_m": 12,
+        "bow_pct": 20
+      },
+      {
+        "kind": "ship.ketch",
+        "bow": [
+          186,
+          -471
+        ],
+        "heading_deg": 290,
+        "speed_mm_s": 3000,
+        "length_m": 24,
+        "beam_m": 5,
+        "bow_pct": 20
+      },
+      {
+        "kind": "ship.ketch",
+        "bow": [
+          -282,
+          -146
+        ],
+        "heading_deg": 117,
+        "speed_mm_s": 2500,
+        "length_m": 24,
+        "beam_m": 5,
+        "bow_pct": 20
+      }
+    ],
+    "wake_mm": 1000,
+    "wake_full_mm_s": 10000,
+    "wake": {
+      "arm_tan_x1000": 354,
+      "band_cm": 1800,
+      "crest_cm": 1400,
+      "fade_m": 600,
+      "bow_pct": 150,
+      "bow_len_pct": 15,
+      "bow_band_cm": 1500,
+      "ahead_cm": 1200
+    },
+    "knock_keep_pct": 60,
+    "knock_back_pct": 30,
+    "respawn_ms": 2000,
+    "medals_ms": [
+      60000,
+      67000,
+      77000
+    ],
+    "rivals": [
+      {
+        "name": "rival.petrel",
+        "pace_pct": 100,
+        "buoy_clear_cm": 800,
+        "livery": [
+          "#2f6fd6",
+          "#ffffff",
+          "#2f6fd6"
+        ]
+      },
+      {
+        "name": "rival.skua",
+        "pace_pct": 94,
+        "buoy_clear_cm": 900,
+        "livery": [
+          "#16a085",
+          "#ff7a2f",
+          "#16a085"
+        ]
+      },
+      {
+        "name": "rival.gannet",
+        "pace_pct": 88,
+        "buoy_clear_cm": 1000,
+        "livery": [
+          "#8e44ad",
+          "#7fe0ff",
+          "#8e44ad"
+        ]
+      }
+    ],
+    "livery": [
+      "#e2503a",
+      "#f2d23a",
+      "#ff7a2f"
+    ],
+    "barges": [
+      [
+        30,
+        0
+      ],
+      [
+        -30,
+        0
+      ]
+    ],
+    "marks": [
+      [
+        -660,
+        -480
+      ],
+      [
+        -600,
+        -480
+      ],
+      [
+        -540,
+        -480
+      ],
+      [
+        -480,
+        -480
+      ],
+      [
+        -420,
+        -480
+      ],
+      [
+        -360,
+        -480
+      ],
+      [
+        -300,
+        -480
+      ],
+      [
+        -180,
+        -480
+      ],
+      [
+        -120,
+        -480
+      ],
+      [
+        -60,
+        -480
+      ],
+      [
+        0,
+        -480
+      ],
+      [
+        60,
+        -480
+      ],
+      [
+        180,
+        -480
+      ],
+      [
+        240,
+        -480
+      ],
+      [
+        300,
+        -480
+      ],
+      [
+        360,
+        -480
+      ],
+      [
+        420,
+        -480
+      ],
+      [
+        480,
+        -480
+      ],
+      [
+        540,
+        -480
+      ],
+      [
+        600,
+        -480
+      ],
+      [
+        660,
+        -480
+      ],
+      [
+        -660,
+        -560
+      ],
+      [
+        -600,
+        -560
+      ],
+      [
+        -540,
+        -560
+      ],
+      [
+        -480,
+        -560
+      ],
+      [
+        -420,
+        -560
+      ],
+      [
+        -360,
+        -560
+      ],
+      [
+        -300,
+        -560
+      ],
+      [
+        120,
+        -560
+      ],
+      [
+        180,
+        -560
+      ],
+      [
+        240,
+        -560
+      ],
+      [
+        300,
+        -560
+      ],
+      [
+        360,
+        -560
+      ],
+      [
+        420,
+        -560
+      ],
+      [
+        480,
+        -560
+      ],
+      [
+        540,
+        -560
+      ],
+      [
+        600,
+        -560
+      ],
+      [
+        660,
+        -560
+      ],
+      [
+        -660,
+        -215
+      ],
+      [
+        -600,
+        -215
+      ],
+      [
+        -540,
+        -215
+      ],
+      [
+        -480,
+        -215
+      ],
+      [
+        -420,
+        -215
+      ],
+      [
+        -360,
+        -215
+      ],
+      [
+        -300,
+        -215
+      ],
+      [
+        -240,
+        -215
+      ],
+      [
+        -120,
+        -215
+      ],
+      [
+        -60,
+        -215
+      ],
+      [
+        120,
+        -215
+      ],
+      [
+        180,
+        -215
+      ],
+      [
+        240,
+        -215
+      ],
+      [
+        300,
+        -215
+      ],
+      [
+        360,
+        -215
+      ],
+      [
+        420,
+        -215
+      ],
+      [
+        480,
+        -215
+      ],
+      [
+        540,
+        -215
+      ],
+      [
+        600,
+        -215
+      ],
+      [
+        660,
+        -215
+      ],
+      [
+        -660,
+        -285
+      ],
+      [
+        -600,
+        -285
+      ],
+      [
+        -540,
+        -285
+      ],
+      [
+        -480,
+        -285
+      ],
+      [
+        -420,
+        -285
+      ],
+      [
+        -360,
+        -285
+      ],
+      [
+        -300,
+        -285
+      ],
+      [
+        -120,
+        -285
+      ],
+      [
+        -60,
+        -285
+      ],
+      [
+        0,
+        -285
+      ],
+      [
+        180,
+        -285
+      ],
+      [
+        240,
+        -285
+      ],
+      [
+        300,
+        -285
+      ],
+      [
+        360,
+        -285
+      ],
+      [
+        420,
+        -285
+      ],
+      [
+        480,
+        -285
+      ],
+      [
+        540,
+        -285
+      ],
+      [
+        600,
+        -285
+      ],
+      [
+        660,
+        -285
+      ]
+    ]
+  },
+  {
+    "_note": "Canyon Descent (T42; in the speedboat since T43): speedboats down the Ledge River run at high water, from the Put-in Pool to the Take-out Pool on the run's race line. Gates 12 m wide for a 2.1 m hull at speed; floating ramps in the Eddy, Big Bend and Falls Pools; nitrous canisters along the course to pick up and fire with Space.",
+    "name": "race.canyon_descent",
+    "place": "place.ledge_river",
+    "weather": "weather.whitewater",
+    "boat": "craft.speedboat",
+    "down_run": {
+      "from_m": 80,
+      "to_m": 1095,
+      "step_m": 5
+    },
+    "width_m": 40,
+    "start": {
+      "lights": 3,
+      "light_ms": 1000,
+      "perfect_ms": 250,
+      "perfect_nitrous_ms": 1000,
+      "grid_cm": [
+        [
+          300,
+          1400
+        ],
+        [
+          -900,
+          1400
+        ],
+        [
+          -300,
+          1400
+        ],
+        [
+          900,
+          1400
+        ]
+      ]
+    },
+    "buoys": [
+      {
+        "on_run": [
+          95,
+          0
+        ],
+        "keep": "gate",
+        "width_cm": 1200
+      },
+      {
+        "on_run": [
+          200,
+          0
+        ],
+        "keep": "gate",
+        "width_cm": 1200
+      },
+      {
+        "on_run": [
+          265,
+          400
+        ],
+        "keep": "gate",
+        "width_cm": 1200
+      },
+      {
+        "on_run": [
+          330,
+          -400
+        ],
+        "keep": "gate",
+        "width_cm": 1200
+      },
+      {
+        "on_run": [
+          455,
+          -100
+        ],
+        "keep": "gate",
+        "width_cm": 1200
+      },
+      {
+        "on_run": [
+          545,
+          600
+        ],
+        "keep": "gate",
+        "width_cm": 1200
+      },
+      {
+        "on_run": [
+          625,
+          -500
+        ],
+        "keep": "gate",
+        "width_cm": 1200
+      },
+      {
+        "on_run": [
+          720,
+          300
+        ],
+        "keep": "gate",
+        "width_cm": 1200
+      },
+      {
+        "on_run": [
+          790,
+          100
+        ],
+        "keep": "gate",
+        "width_cm": 1200
+      },
+      {
+        "on_run": [
+          875,
+          500
+        ],
+        "keep": "gate",
+        "width_cm": 1200
+      },
+      {
+        "on_run": [
+          1000,
+          0
+        ],
+        "keep": "gate",
+        "width_cm": 1200
+      },
+      {
+        "on_run": [
+          1085,
+          0
+        ],
+        "keep": "gate",
+        "width_cm": 1200
+      }
+    ],
+    "arrows": 5,
+    "arrow_top_pct": 3,
+    "rings": [
+      {
+        "on_run": [
+          140,
+          0
+        ],
+        "y_cm": 300,
+        "radius_cm": 500
+      },
+      {
+        "on_run": [
+          385,
+          0
+        ],
+        "y_cm": 300,
+        "radius_cm": 500
+      },
+      {
+        "on_run": [
+          690,
+          0
+        ],
+        "y_cm": 300,
+        "radius_cm": 500
+      },
+      {
+        "on_run": [
+          955,
+          0
+        ],
+        "y_cm": 300,
+        "radius_cm": 500
+      }
+    ],
+    "nitrous_top_pct": 30,
+    "nitrous_ms": 2500,
+    "nitrous_kick_cm_s": 300,
+    "knock_keep_pct": 60,
+    "knock_back_pct": 30,
+    "respawn_ms": 2000,
+    "medals_ms": [
+      32000,
+      38000,
+      46000
+    ],
+    "rivals": [
+      {
+        "name": "rival.dipper",
+        "pace_pct": 96,
+        "buoy_clear_cm": 0,
+        "livery": [
+          "#e8c547",
+          "#d33c2e",
+          "#2b6cb0"
+        ]
+      },
+      {
+        "name": "rival.wagtail",
+        "pace_pct": 90,
+        "buoy_clear_cm": 0,
+        "livery": [
+          "#3aa66b",
+          "#f4f1e6",
+          "#3aa66b"
+        ]
+      },
+      {
+        "name": "rival.sandpiper",
+        "pace_pct": 84,
+        "buoy_clear_cm": 0,
+        "livery": [
+          "#8a5cc2",
+          "#ffb347",
+          "#8a5cc2"
+        ]
+      }
+    ],
+    "livery": [
+      "#e2503a",
+      "#f2d23a",
+      "#ff7a2f"
+    ],
+    "canisters": [
+      {
+        "on_run": [
+          110,
+          300
+        ]
+      },
+      {
+        "on_run": [
+          170,
+          -300
+        ]
+      },
+      {
+        "on_run": [
+          300,
+          0
+        ]
+      },
+      {
+        "on_run": [
+          420,
+          200
+        ]
+      },
+      {
+        "on_run": [
+          520,
+          -400
+        ]
+      },
+      {
+        "on_run": [
+          640,
+          300
+        ]
+      },
+      {
+        "on_run": [
+          760,
+          -200
+        ]
+      },
+      {
+        "on_run": [
+          860,
+          -300
+        ]
+      },
+      {
+        "on_run": [
+          980,
+          200
+        ]
+      },
+      {
+        "on_run": [
+          1060,
+          -300
+        ]
+      }
+    ],
+    "canisters_held": 3,
+    "ramps": [
+      {
+        "on_run": [
+          290,
+          0
+        ],
+        "length_cm": 1000,
+        "height_cm": 240,
+        "width_cm": 800
+      },
+      {
+        "on_run": [
+          600,
+          0
+        ],
+        "length_cm": 1200,
+        "height_cm": 300,
+        "width_cm": 800
+      },
+      {
+        "on_run": [
+          880,
+          0
+        ],
+        "length_cm": 1000,
+        "height_cm": 240,
+        "width_cm": 800
+      }
+    ]
+  },
+  {
+    "_note": "Kayak Descent (T42, renamed in T43): the kayak race down the Ledge River run, from the Put-in Pool to the Take-out Pool, after Container Run's lessons. The course is the run's own race line (down_run); gates, rings and canisters are placed down the run, metres down it and centimetres right of its middle. Every gate is a downstream gate, wide, on or near the line: none upstream, none in a hole.",
+    "name": "race.kayak_descent",
+    "place": "place.ledge_river",
+    "weather": "weather.whitewater",
+    "boat": "craft.kayak",
+    "down_run": {
+      "from_m": 80,
+      "to_m": 1095,
+      "step_m": 5
+    },
+    "width_m": 40,
+    "start": {
+      "lights": 3,
+      "light_ms": 1000,
+      "perfect_ms": 250,
+      "perfect_nitrous_ms": 1000,
+      "grid_cm": [
+        [
+          300,
+          1000
+        ],
+        [
+          -900,
+          1000
+        ],
+        [
+          -300,
+          1000
+        ],
+        [
+          900,
+          1000
+        ]
+      ]
+    },
+    "buoys": [
+      {
+        "on_run": [
+          95,
+          0
+        ],
+        "keep": "gate",
+        "width_cm": 800
+      },
+      {
+        "on_run": [
+          200,
+          0
+        ],
+        "keep": "gate",
+        "width_cm": 800
+      },
+      {
+        "on_run": [
+          265,
+          400
+        ],
+        "keep": "gate",
+        "width_cm": 800
+      },
+      {
+        "on_run": [
+          330,
+          -400
+        ],
+        "keep": "gate",
+        "width_cm": 800
+      },
+      {
+        "on_run": [
+          455,
+          -100
+        ],
+        "keep": "gate",
+        "width_cm": 800
+      },
+      {
+        "on_run": [
+          545,
+          600
+        ],
+        "keep": "gate",
+        "width_cm": 800
+      },
+      {
+        "on_run": [
+          625,
+          -500
+        ],
+        "keep": "gate",
+        "width_cm": 800
+      },
+      {
+        "on_run": [
+          720,
+          300
+        ],
+        "keep": "gate",
+        "width_cm": 700
+      },
+      {
+        "on_run": [
+          790,
+          100
+        ],
+        "keep": "gate",
+        "width_cm": 700
+      },
+      {
+        "on_run": [
+          875,
+          500
+        ],
+        "keep": "gate",
+        "width_cm": 800
+      },
+      {
+        "on_run": [
+          1000,
+          0
+        ],
+        "keep": "gate",
+        "width_cm": 700
+      },
+      {
+        "on_run": [
+          1085,
+          0
+        ],
+        "keep": "gate",
+        "width_cm": 800
+      }
+    ],
+    "arrows": 5,
+    "arrow_top_pct": 6,
+    "rings": [
+      {
+        "on_run": [
+          140,
+          0
+        ],
+        "y_cm": 200,
+        "radius_cm": 350
+      },
+      {
+        "on_run": [
+          385,
+          0
+        ],
+        "y_cm": 200,
+        "radius_cm": 350
+      },
+      {
+        "on_run": [
+          690,
+          0
+        ],
+        "y_cm": 200,
+        "radius_cm": 350
+      },
+      {
+        "on_run": [
+          955,
+          0
+        ],
+        "y_cm": 200,
+        "radius_cm": 350
+      }
+    ],
+    "nitrous_top_pct": 40,
+    "nitrous_ms": 2500,
+    "nitrous_kick_cm_s": 200,
+    "knock_keep_pct": 60,
+    "knock_back_pct": 30,
+    "respawn_ms": 2000,
+    "medals_ms": [
+      105000,
+      115000,
+      130000
+    ],
+    "rivals": [
+      {
+        "name": "rival.dipper",
+        "pace_pct": 96,
+        "buoy_clear_cm": 0,
+        "livery": [
+          "#e8c547",
+          "#d33c2e",
+          "#2b6cb0"
+        ]
+      },
+      {
+        "name": "rival.wagtail",
+        "pace_pct": 88,
+        "buoy_clear_cm": 0,
+        "livery": [
+          "#3aa66b",
+          "#f4f1e6",
+          "#3aa66b"
+        ]
+      },
+      {
+        "name": "rival.sandpiper",
+        "pace_pct": 80,
+        "buoy_clear_cm": 0,
+        "livery": [
+          "#8a5cc2",
+          "#ffb347",
+          "#8a5cc2"
+        ]
+      }
+    ],
+    "livery": [
+      "#e2503a",
+      "#f2d23a",
+      "#ff7a2f"
+    ],
+    "canisters": [
+      {
+        "on_run": [
+          110,
+          300
+        ]
+      },
+      {
+        "on_run": [
+          170,
+          -300
+        ]
+      },
+      {
+        "on_run": [
+          300,
+          0
+        ]
+      },
+      {
+        "on_run": [
+          420,
+          200
+        ]
+      },
+      {
+        "on_run": [
+          520,
+          -400
+        ]
+      },
+      {
+        "on_run": [
+          640,
+          300
+        ]
+      },
+      {
+        "on_run": [
+          760,
+          -200
+        ]
+      },
+      {
+        "on_run": [
+          860,
+          -300
+        ]
+      },
+      {
+        "on_run": [
+          980,
+          200
+        ]
+      },
+      {
+        "on_run": [
+          1060,
+          -300
+        ]
+      }
+    ],
+    "canisters_held": 3
+  },
+  {
+    "_note": "Ring Road (T50), after briefs/ring-road.md with every question at its recommendation: speedboats round a small Saturn on its rings, one lap of about 2.5 km from Ring Station on the B ring. The lane jumps out across the Cassini Division near 41 degrees and back near 312, a floating ramp before each gap; buoys light power arrows on the A ring only, so the shorter way round on the B ring gets none; gold rings over the crest of the bending wave; canisters round the lap. Off the ice is a wipeout.",
+    "name": "race.ring_road",
+    "place": "place.saturn",
+    "weather": "weather.ring_day",
+    "boat": "craft.speedboat",
+    "round": {
+      "from_deg": 0,
+      "step_deg": 1
+    },
+    "width_m": 90,
+    "start": {
+      "lights": 3,
+      "light_ms": 1000,
+      "perfect_ms": 250,
+      "perfect_nitrous_ms": 1000,
+      "grid_cm": [
+        [
+          300,
+          1400
+        ],
+        [
+          -900,
+          1400
+        ],
+        [
+          -300,
+          1400
+        ],
+        [
+          900,
+          1400
+        ]
+      ]
+    },
+    "buoys": [
+      {
+        "on_run": [
+          70,
+          700
+        ],
+        "keep": "right"
+      },
+      {
+        "on_run": [
+          100,
+          -700
+        ],
+        "keep": "left"
+      },
+      {
+        "on_run": [
+          130,
+          700
+        ],
+        "keep": "right"
+      },
+      {
+        "on_run": [
+          160,
+          -700
+        ],
+        "keep": "left"
+      },
+      {
+        "on_run": [
+          190,
+          700
+        ],
+        "keep": "right"
+      },
+      {
+        "on_run": [
+          220,
+          -700
+        ],
+        "keep": "left"
+      },
+      {
+        "on_run": [
+          250,
+          700
+        ],
+        "keep": "right"
+      },
+      {
+        "on_run": [
+          280,
+          -700
+        ],
+        "keep": "left"
+      }
+    ],
+    "arrows": 5,
+    "arrow_top_pct": 4,
+    "rings": [
+      {
+        "on_run": [
+          86,
+          0
+        ],
+        "y_cm": 300,
+        "radius_cm": 500
+      },
+      {
+        "on_run": [
+          94,
+          0
+        ],
+        "y_cm": 300,
+        "radius_cm": 500
+      },
+      {
+        "on_run": [
+          175,
+          0
+        ],
+        "y_cm": 300,
+        "radius_cm": 500
+      },
+      {
+        "on_run": [
+          262,
+          0
+        ],
+        "y_cm": 300,
+        "radius_cm": 500
+      }
+    ],
+    "nitrous_top_pct": 30,
+    "nitrous_ms": 2500,
+    "nitrous_kick_cm_s": 300,
+    "canisters": [
+      {
+        "on_run": [
+          15,
+          300
+        ]
+      },
+      {
+        "on_run": [
+          115,
+          -300
+        ]
+      },
+      {
+        "on_run": [
+          145,
+          300
+        ]
+      },
+      {
+        "on_run": [
+          205,
+          -300
+        ]
+      },
+      {
+        "on_run": [
+          235,
+          300
+        ]
+      },
+      {
+        "on_run": [
+          270,
+          0
+        ]
+      },
+      {
+        "on_run": [
+          290,
+          -300
+        ]
+      },
+      {
+        "on_run": [
+          345,
+          300
+        ]
+      }
+    ],
+    "canisters_held": 3,
+    "ramps": [
+      {
+        "on_run": [
+          36,
+          0
+        ],
+        "length_cm": 1000,
+        "height_cm": 80,
+        "width_cm": 800
+      },
+      {
+        "on_run": [
+          305,
+          0
+        ],
+        "length_cm": 1000,
+        "height_cm": 80,
+        "width_cm": 800
+      }
+    ],
+    "knock_keep_pct": 60,
+    "knock_back_pct": 30,
+    "respawn_ms": 2000,
+    "medals_ms": [
+      84000,
+      96000,
+      112000
+    ],
+    "rivals": [
+      {
+        "name": "rival.cassini",
+        "pace_pct": 96,
+        "buoy_clear_cm": 0,
+        "livery": [
+          "#d9b44a",
+          "#1f2a44",
+          "#e8e4dc"
+        ]
+      },
+      {
+        "name": "rival.huygens",
+        "pace_pct": 90,
+        "buoy_clear_cm": 0,
+        "livery": [
+          "#e8e4dc",
+          "#d94f2b",
+          "#e8e4dc"
+        ]
+      },
+      {
+        "name": "rival.voyager",
+        "pace_pct": 84,
+        "buoy_clear_cm": 0,
+        "livery": [
+          "#3a6fb0",
+          "#f2f0e8",
+          "#3a6fb0"
+        ]
+      }
+    ],
+    "livery": [
+      "#e2503a",
+      "#f2d23a",
+      "#ff7a2f"
+    ]
+  }
+]

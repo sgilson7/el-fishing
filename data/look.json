@@ -1,0 +1,694 @@
+{
+  "_note": "Presentation numbers for the Open Swell's look, after the ocean mockup. Numbers are thousandths (so 640 is 0.64); a colour is a hex string. The core turns each list into a shader uniform of that name; the shaders hold no numbers of their own (Builder D3).",
+  "sun": {
+    "toward_deg": 200,
+    "elevation_deg": 24
+  },
+  "shapes": {
+    "uEps": [
+      1
+    ],
+    "uMix": [
+      640,
+      460,
+      240,
+      500
+    ],
+    "uGlow": [
+      1600,
+      1080
+    ],
+    "uSkyLight": [
+      "#c8d8ec"
+    ],
+    "uGroundLight": [
+      "#3e5560"
+    ],
+    "uSun": [
+      "#ffe9c8"
+    ],
+    "uFogColour": [
+      "#b9c9d4"
+    ],
+    "uFog": [
+      60000,
+      900000
+    ],
+    "uDeep": [
+      "#0c3a52"
+    ],
+    "uMurk": [
+      7000,
+      2600
+    ],
+    "uShadow": [0, 0]
+  },
+  "water": {
+    "uTau": [
+      6283
+    ],
+    "uLod": [
+      2000,
+      5000
+    ],
+    "uHalf": [
+      500
+    ],
+    "uDeep": [
+      "#0b3550"
+    ],
+    "uShallow": [
+      "#1f7088"
+    ],
+    "uCrest": [
+      "#56e0d0"
+    ],
+    "uSkyTop": [
+      "#4b78b8"
+    ],
+    "uSkyHor": [
+      "#cfdbe3"
+    ],
+    "uSunCol": [
+      "#fff0d8"
+    ],
+    "uFogColour": [
+      "#b9c9d4"
+    ],
+    "uFog": [
+      60000,
+      900000
+    ],
+    "uFoamColour": [
+      "#eef4f4"
+    ],
+    "uLook": [
+      550,
+      20,
+      5000,
+      3000
+    ],
+    "uGlint": [
+      380000,
+      5000,
+      40000,
+      120
+    ],
+    "uBody": [
+      350,
+      900,
+      750,
+      350
+    ],
+    "uCrestLight": [
+      900,
+      1400,
+      200,
+      550
+    ],
+    "uFoam": [
+      550,
+      1050,
+      1300,
+      2300
+    ],
+    "uFoamEdge": [
+      350,
+      750,
+      900,
+      550
+    ],
+    "uDetail": [
+      1300,
+      3100,
+      400,
+      250
+    ],
+    "uFlow": [
+      120000,
+      0,
+      0,
+      0
+    ],
+    "uHash": [
+      103,
+      1,
+      250,
+      33330
+    ],
+    "uWake": [
+      354,
+      2200,
+      60,
+      1600
+    ],
+    "uWakeK": [
+      14000,
+      9000,
+      600,
+      900
+    ],
+    "uRingK": [
+      1600,
+      2200,
+      14000,
+      600
+    ],
+    "uClear": [
+      350,
+      900,
+      150,
+      0
+    ],
+    "uFlowK": [
+      3000,
+      300,
+      1100,
+      4000
+    ],
+    "uStreak": [
+      250,
+      4000,
+      700,
+      860
+    ],
+    "uCloud": [0, 42000, 100000, 0],
+    "uBeltDark": ["#8c4d2e"],
+    "uBeltLight": ["#b87a4d"],
+    "uZone": ["#f2e0c2"],
+    "uStorm": ["#cc5433"],
+    "uVortex": [0, 0, 1000, 0],
+    "uCloudK": [1200, 5000, 1400, 550],
+    "uIce": [0, 0, 0, 0],
+    "uIceK": [1000, 1000, 1000, 0],
+    "uIceC": ["#000000"],
+    "uIceB": ["#000000"],
+    "uIceA": ["#000000"]
+  },
+  "sky": {
+    "uTop": [
+      "#4b78b8"
+    ],
+    "uHor": [
+      "#cfdbe3"
+    ],
+    "uBelow": [
+      "#b9c9d4"
+    ],
+    "uSunCol": [
+      "#fff0d8"
+    ],
+    "uSkyK": [
+      550,
+      8000,
+      250,
+      2000
+    ],
+    "uDisc": [
+      2600000
+    ],
+    "uMoon1Col": ["#000000"],
+    "uMoon2Col": ["#000000"],
+    "uMoonK": [0, 0, 2, 0],
+    "uStars": [0, 0, 0, 0],
+    "uGalaxy": [0, 1000, 0],
+    "uGalaxyCol": ["#000000"],
+    "uGalaxyK": [0, 0, 0, 0],
+    "uHash": [103, 1, 250, 33330]
+  },
+  "camera": {
+    "behind_cm": 620,
+    "above_cm": 280,
+    "aside_cm": 140,
+    "look_ahead_cm": 900,
+    "focal_x1000": 2145,
+    "follow_pct": 12,
+    "scope_eye_cm": [
+      6,
+      112,
+      21
+    ],
+    "scope_min_zoom": 4,
+    "scope_max_zoom": 16,
+    "scope_start_zoom": 10
+  },
+  "dial": {
+    "panel_px": [
+      260,
+      340
+    ],
+    "disc_px": 180,
+    "gap_px": 24,
+    "edge_px": 18,
+    "ease_pct": 15,
+    "fish_ease_pct": 10,
+    "slack_px": 40
+  },
+  "camera_turn": {
+    "_note": "T39: dragging with the left mouse button swings the chase camera round the hull and tilts it; it eases back behind the hull after the mouse stops.",
+    "turn_millideg_per_px": 300,
+    "tilt_millideg_per_px": 300,
+    "lowest_deg": 5,
+    "highest_deg": 70,
+    "return_after_ms": 2000,
+    "return_deg_s": 90
+  },
+  "colours": {
+    "vista_foam": "#f4fbfc",
+    "vista_stone": "#cfc2a2",
+    "vista_stone_dark": "#a8987a",
+    "vista_fire": "#ffb84a",
+    "vista_flame": "#ffe08a",
+    "vista_bronze": "#4e8a68",
+    "vista_bronze_dark": "#3a6b52",
+    "vista_gold": "#d8a640",
+    "vista_blade": "#c8ccc4",
+    "vista_land": "#c2ad80",
+    "vista_hill": "#9c9a72",
+    "vista_wall_white": "#f2eee4",
+    "vista_wall_ochre": "#d9a464",
+    "vista_wall_cream": "#e8d6b0",
+    "vista_roof": "#b8603c",
+    "vista_wood": "#5a3e2a",
+    "vista_marble": "#ece6d8",
+    "vista_reef": "#5e5a50",
+    "vista_wood_old": "#3f342a",
+    "hull": "#3b8f8c",
+    "seat": "#3a3f44",
+    "dark": "#1f2327",
+    "crate": "#3a5560",
+    "skin": "#e0ac86",
+    "vest": "#e8692e",
+    "shirt": "#d6dde0",
+    "pants": "#45535c",
+    "cap": "#2f4b5a",
+    "beard": "#6b4a33",
+    "brass": "#b5893a",
+    "lens": "#7fe8ff",
+    "rod": "#3c4a6a",
+    "cork": "#c49a68",
+    "reel": "#9aa3aa",
+    "line": "#d9ff5a",
+    "lure": "#ff7a2f",
+    "stack": "#8a7a6a",
+    "stack_top": "#6d8a46",
+    "cloud": "#ffffff",
+    "gull": "#f4f4f0",
+    "ledge": "#9c7a55",
+    "ledge_dark": "#7a5e43",
+    "pine": "#2f5a3a",
+    "trunk": "#5a4130",
+    "bed": "#6d6450",
+    "boulder": "#5c5e60",
+    "plateau": "#b08a5e",
+    "waterfall": "#e8f6ff",
+    "mist": "#dcecf4",
+    "pylon": "#4a5058",
+    "cable": "#262a2e",
+    "vine": "#4f8a3a", "vine_dark": "#355f2c", "vine_light": "#7aa64a", "fern": "#5e9a44", "moss": "#9aa858", "root": "#4a3426", "soil": "#5e4632",
+    "seep": "#4e3f30", "dripstone": "#e2ecec", "snag": "#a39a8c", "driftwood": "#c9bca4", "ladder": "#6b5139", "shrub": "#4f6f38",
+    "bloom_white": "#f4f1e6", "bloom_violet": "#9a6ac8", "bloom_yellow": "#f0c43a", "gravel": "#a89a82", "gravel_light": "#c4b89e", "sand": "#d6c7a2",
+    "heron": "#7d8ea3", "heron_neck": "#c9ced4", "bill_yellow": "#e0b040", "bill_red": "#d2442e",
+    "merganser_drake": "#f2f1ea", "merganser_head": "#1e4a3c", "merganser_hen": "#9a9c98", "merganser_rust": "#b0582e",
+    "deer": "#9a6c46", "deer_pale": "#e2d4b8", "otter": "#4e3626", "otter_pale": "#a08a70", "bighorn": "#a88c66", "bighorn_rump": "#eee6d6", "horn": "#cdb88e",
+    "bear": "#231b16", "bear_muzzle": "#8a6a4a", "eagle": "#3e2c1e", "osprey": "#3a3028", "osprey_belly": "#f2efe6", "kingfisher": "#4a7aa8", "swallow": "#263650",
+    "turtle": "#4a5230", "turtle_skin": "#7a7a3c",
+    "station": "#d9cdb4",
+    "station_roof": "#8a3b2a",
+    "cabin": "#d2402e",
+    "cabin_glass": "#1b2a36",
+    "boat_hull": "#f2f2ee",
+    "boat_deck": "#d8d2c4",
+    "boat_trim": "#c8402e",
+    "gate_pole": "#23a05a", "gate_band": "#f4f4f0", "gate_wire": "#2a2c2e", "banner": "#e2503a",
+    "bunting_1": "#e2503a", "bunting_2": "#f2d23a", "bunting_3": "#2e86c1", "bunting_4": "#f4f4f0",
+    "crowd_1": "#e2503a", "crowd_2": "#2e86c1", "crowd_3": "#f1c40f", "crowd_4": "#16a085", "crowd_5": "#f4f1ea", "canister": "#e8382c",
+    "rain": "#b8c6cf", "buoy_keep_right": "#e2503a", "buoy_keep_left": "#f2d23a", "buoy_band": "#f4f4f0", "ring": "#ffcf3a", "ring_glow": "#7fe8ff", "ramp_deck": "#f2c230", "ramp_rail": "#e2503a", "ramp_float": "#d8d8d0", "ship_hull": "#1f3f6a", "tanker_hull": "#26292c", "tanker_deck": "#6d6a62", "boot_top": "#8a2a22", "box_1": "#c0392b", "box_2": "#2e86c1", "box_3": "#e67e22", "box_4": "#7f8c8d", "box_5": "#16a085", "box_6": "#f1c40f", "bridge": "#f2f2ee", "glass": "#1b2a36", "funnel": "#2b2b2b", "yacht_hull": "#f7f7f4", "ketch_hull": "#1d2e40", "sail": "#f6f3ea", "mast": "#cfcfcf", "barge": "#3a4048", "gantry": "#1b2228", "light_red": "#ff3a2a", "light_off": "#3a1a18", "light_green": "#3aff6a", "spray": "#f2fbff", "nitrous": "#4fd8ff", "ghost": "#9fe8ff", "beacon": "#ffd23a", "vista_sand": "#d9c9a0", "vista_grass": "#5f8a4a", "vista_grass_high": "#6f9150", "vista_cliff": "#7d6450", "vista_cliff_dark": "#5e4a3c", "vista_volcano": "#5f5752", "vista_ash": "#3e3836", "vista_town": "#f4f1ea", "vista_roof": "#c46a44", "vista_dome": "#3f74b8", "vista_trunk": "#6b5038", "vista_frond": "#3f7a3a", "vista_lighthouse": "#f4f4f0", "vista_band": "#c8402e", "vista_lamp": "#ffe08a", "vista_coast": "#5c7a58", "vista_hill": "#4c6a84", "vista_mountain": "#3e5d8e", "vista_ship_hull": "#3b2a20", "vista_mast": "#4a3a2c", "vista_sail": "#f4efe2", "vista_whale": "#2c3640", "vista_spout": "#f4fbff", "vista_cloud_lit": "#fff6e8", "vista_cloud_shade": "#e4e9f0", "vista_cloud_base": "#aab5c2", "vista_cirrus": "#ffffff", "vista_squall": "#5e6872", "vista_rain": "#8e9aa4",
+    "bag": "#f2ead8", "bag_band": "#e8642a", "bag_line": "#3a3a3a", "burner": "#6a7076", "flame": "#ffb040", "helmet": "#cfeaff", "helmet_collar": "#9aa3aa",
+    "saturn_cream": "#ecdcb4", "saturn_hexagon": "#8a9aa6", "saturn_pole": "#6e8494", "saturn_vortex": "#4a5866", "aurora_green": "#5cffb4", "aurora_violet": "#b47cff", "storm_white": "#f4f2ea", "lightning": "#e8f0ff",
+    "moon_grey": "#a8a49c", "moon_ice": "#dedad2", "crater": "#5e5a56", "pan": "#c8b494", "edge_wave": "#eae6dc", "f_ring": "#f2eee4", "enceladus": "#f6faff", "plume": "#cfe6ff", "e_ring": "#5c8cff", "titan": "#d98a32", "titan_haze": "#f0a850", "huygens": "#f2f0ea", "parachute": "#f06a2a", "hyperion": "#b49c7c", "iapetus_light": "#ece6da", "iapetus_dark": "#2e2620",
+    "jupiter": "#e6cfa8", "jupiter_spot": "#c4583a", "io": "#e8d26a", "europa": "#ece6dc", "ganymede": "#a8a092", "callisto": "#6e665c", "earth": "#7cb4ff", "earth_moon": "#c8c8c8", "comet_head": "#f4fbff", "comet_ion": "#5c9cff", "comet_dust": "#f2e2b4",
+    "cassini_gold": "#d9a838", "dish_white": "#f0eeea", "rtg": "#3a3836", "barge_hull": "#5a5e66", "barge_stripe": "#e8b830", "net": "#c8c0a8", "engine": "#6ad2ff", "window": "#ffe6a8",
+    "banner_dark": "#1c2230", "banner_gold": "#f2c23a", "banner_red": "#d9432a", "banner_blue": "#3a6fd0", "stand": "#4a505c", "rail_light": "#5ce6ff", "floodlight": "#fff4dc", "suit_1": "#f2f2ee", "suit_2": "#e8b030", "suit_3": "#e8562e", "suit_4": "#4a8ae0", "helmet_glass": "#bfe4ff", "drone": "#2e323a", "ship_silver": "#c8ccd4", "ship_trim": "#d9432a",
+    "ice_c": "#8c929c", "ice_c_dark": "#6e747e", "ice_b": "#e2d6c0", "ice_b_dark": "#c4b498", "ice_a": "#d6e2e4", "ice_a_dark": "#b4c4c8", "spoke": "#7e7a74", "impact": "#ffe2b0"
+  },
+  "line_glow": 700,
+  "lure_glow": 900,
+  "grid_cells": 192,
+  "grid_radius_m": 900,
+  "ship_foam_x1000": 600, "wake_full_cm_s": 80,
+  "animal_size_pct": 140,
+  "bag": {"mouth_cm": 420, "tall_cm": 900, "wide_cm": 720, "bands_pct": [35, 62, 86]},
+  "flame_glow": 1400,
+  "helmet_glow": 220,
+  "places": {
+    "place.saturn": {
+      "camera": {"behind_cm": 1100, "above_cm": 420, "aside_cm": -550, "look_ahead_cm": 1600, "focal_x1000": 1500, "follow_pct": 18, "scope_eye_cm": [6, 112, 21], "scope_min_zoom": 4, "scope_max_zoom": 16, "scope_start_zoom": 10},
+      "sun": {"toward_deg": 90, "elevation_deg": 12},
+      "sky": {
+        "uTop": ["#020309"], "uHor": ["#05060e"], "uBelow": ["#020309"], "uSunCol": ["#fff6e6"],
+        "uSkyK": [550, 90000, 60, 6000],
+        "uStars": [900, 1100000, 9, 120],
+        "uGalaxy": [320, 780, 540],
+        "uGalaxyCol": ["#9a92c8"],
+        "uGalaxyK": [9000, 6000, 17000, 29000]
+      },
+      "shapes": {
+        "uSkyLight": ["#2c3650"], "uGroundLight": ["#8c7c62"], "uSun": ["#fff4e2"],
+        "uFogColour": ["#05060e"], "uFog": [3000000, 3500000], "uDeep": ["#05060e"],
+        "uMurk": [30000000, 1000],
+        "uShadow": [3000, 900]
+      },
+      "water": {
+        "uSunCol": ["#fff4e2"], "uFogColour": ["#05060e"], "uFog": [3000000, 3500000],
+        "uBody": [350, 900, 450, 1100],
+        "uGlint": [380000, 2500, 40000, 30],
+        "uDetail": [1300, 3100, 400, 120],
+        "uIce": [1000, 15, 300, 120],
+        "uIceK": [9000, 180, 3000, 250],
+        "uIceC": ["#6d7686"],
+        "uIceB": ["#d9c3a0"],
+        "uIceA": ["#a9c4c0"]
+      }
+    },
+    "place.jupiter": {
+      "sun": {"toward_deg": 20, "elevation_deg": 30},
+      "camera": {"behind_cm": 900, "above_cm": 220, "aside_cm": -650, "look_ahead_cm": 2500, "look_up_cm": 400, "focal_x1000": 1900, "follow_pct": 12, "scope_eye_cm": [6, 112, 21], "scope_min_zoom": 4, "scope_max_zoom": 16, "scope_start_zoom": 10},
+      "moons": [{"toward_deg": 150, "elevation_deg": 24}, {"toward_deg": 200, "elevation_deg": 31}],
+      "water": {
+        "uCloud": [1000, 110000, 140000, 300],
+        "uVortex": [150000, -480000, 320000, 640],
+        "uDeep": ["#a8825e"],
+        "uShallow": ["#e2c8a2"],
+        "uCrest": ["#fff2dc"],
+        "uSkyTop": ["#5a4a3e"],
+        "uSkyHor": ["#d8b48a"],
+        "uSunCol": ["#fff2dc"],
+        "uFogColour": ["#c8a07a"],
+        "uFog": [60000, 1500000],
+        "uFoamColour": ["#fbf7ef"],
+        "uLook": [550, 5, 5000, 3000],
+        "uGlint": [380000, 300, 40000, 30],
+        "uCrestLight": [300, 1400, 200, 550],
+        "uDetail": [1300, 3100, 400, 120],
+        "uClear": [120, 700, 150, 0],
+        "uFlowK": [3000, 200, 0, 4000],
+        "uCloudK": [1200, 5000, 1400, 750]
+      },
+      "shapes": {
+        "uSkyLight": ["#e8c8a0"],
+        "uGroundLight": ["#8a5a3a"],
+        "uSun": ["#fff2dc"],
+        "uFogColour": ["#c8a07a"],
+        "uFog": [60000, 1500000],
+        "uDeep": ["#c8a07a"],
+        "uMurk": [8000, 2600]
+      },
+      "sky": {
+        "uTop": ["#2a2630"],
+        "uSkyK": [900, 8000, 250, 2000],
+        "uHor": ["#d8b48a"],
+        "uBelow": ["#c8a07a"],
+        "uSunCol": ["#fff2dc"],
+        "uMoon1Col": ["#f2e6c8"],
+        "uMoon2Col": ["#f6f2ea"],
+        "uMoonK": [60, 35, 2, 600]
+      },
+      "colours": {
+        "hull": "#e8e4dc", "vest": "#f4f4f0", "shirt": "#e8e8e4", "pants": "#dcdcd6", "cap": "#f4f4f0",
+        "cloud": "#f6efe4", "vista_cloud_lit": "#fbf6ec", "vista_cloud_shade": "#e6d6c0", "vista_cloud_base": "#b89a7a", "vista_cirrus": "#f6eee0"
+      }
+    },
+    "place.open_swell": {
+      "shapes": {
+        "uFog": [
+          100000,
+          3800000
+        ]
+      }
+    },
+    "place.ledge_river": {
+      "sun": {
+        "toward_deg": 160,
+        "elevation_deg": 58
+      },
+      "water": {
+        "uDeep": [
+          "#1d4a48"
+        ],
+        "uShallow": [
+          "#3f8a7c"
+        ],
+        "uCrest": [
+          "#7fe0c8"
+        ],
+        "uSkyTop": [
+          "#5f8fc4"
+        ],
+        "uSkyHor": [
+          "#d3dde2"
+        ],
+        "uFogColour": [
+          "#c4d0d4"
+        ],
+        "uFog": [
+          90000,
+          520000
+        ],
+        "uClear": [
+          520,
+          950,
+          150,
+          0
+        ],
+        "uFlowK": [
+          8000,
+          700,
+          1400,
+          3000
+        ]
+      },
+      "shapes": {
+        "uFogColour": [
+          "#c4d0d4"
+        ],
+        "uFog": [
+          90000,
+          520000
+        ],
+        "uDeep": [
+          "#1d4a48"
+        ],
+        "uMurk": [
+          3500,
+          1600
+        ]
+      },
+      "sky": {
+        "uTop": [
+          "#5f8fc4"
+        ],
+        "uHor": [
+          "#d3dde2"
+        ],
+        "uBelow": [
+          "#c4d0d4"
+        ]
+      }
+    },
+    "weather.storm": {
+      "sun": {
+        "toward_deg": 200,
+        "elevation_deg": 40
+      },
+      "water": {
+        "uDeep": [
+          "#16262e"
+        ],
+        "uShallow": [
+          "#2f4f5a"
+        ],
+        "uCrest": [
+          "#7fa8a8"
+        ],
+        "uSkyTop": [
+          "#4e5a62"
+        ],
+        "uSkyHor": [
+          "#8b979d"
+        ],
+        "uSunCol": [
+          "#5a6064"
+        ],
+        "uFogColour": [
+          "#7d878c"
+        ],
+        "uFog": [
+          30000,
+          420000
+        ],
+        "uFoam": [
+          300,
+          800,
+          1700,
+          2300
+        ],
+        "uFoamEdge": [
+          300,
+          700,
+          950,
+          550
+        ],
+        "uGlint": [
+          380000,
+          600,
+          40000,
+          30
+        ],
+        "uCrestLight": [
+          400,
+          1400,
+          200,
+          600
+        ]
+      },
+      "shapes": {
+        "uSkyLight": [
+          "#8a949a"
+        ],
+        "uSun": [
+          "#8c9296"
+        ],
+        "uFogColour": [
+          "#7d878c"
+        ],
+        "uFog": [
+          -400000,
+          3400000
+        ],
+        "uDeep": [
+          "#16262e"
+        ]
+      },
+      "sky": {
+        "uTop": [
+          "#4e5a62"
+        ],
+        "uHor": [
+          "#8b979d"
+        ],
+        "uBelow": [
+          "#7d878c"
+        ],
+        "uSunCol": [
+          "#2a2e30"
+        ]
+      },
+      "colours": {
+        "cloud": "#59636a",
+        "stack": "#5d5850",
+        "vista_cloud_lit": "#8d969c", "vista_cloud_shade": "#6f7980", "vista_cloud_base": "#40484e", "vista_cirrus": "#8a949a", "vista_squall": "#353d43", "vista_rain": "#566068"
+      }
+    },
+    "weather.whitewater": {
+      "water": {
+        "uFoam": [
+          250,
+          700,
+          1800,
+          2300
+        ],
+        "uFoamEdge": [
+          280,
+          650,
+          950,
+          550
+        ],
+        "uFlowK": [
+          10000,
+          1300,
+          2000,
+          2000
+        ],
+        "uShallow": [
+          "#4f9a8a"
+        ]
+      }
+    }
+  },
+  "boat_cameras": {
+    "craft.speedboat": {
+      "behind_cm": 1100,
+      "above_cm": 380,
+      "aside_cm": 0,
+      "look_ahead_cm": 1600,
+      "focal_x1000": 2145,
+      "follow_pct": 18,
+      "scope_eye_cm": [
+        6,
+        112,
+        21
+      ],
+      "scope_min_zoom": 4,
+      "scope_max_zoom": 16,
+      "scope_start_zoom": 10
+    },
+    "craft.troller": {
+      "behind_cm": -900,
+      "above_cm": 480,
+      "aside_cm": 0,
+      "look_ahead_cm": -2600,
+      "focal_x1000": 2145,
+      "follow_pct": 15,
+      "scope_eye_cm": [
+        6,
+        112,
+        21
+      ],
+      "scope_min_zoom": 4,
+      "scope_max_zoom": 16,
+      "scope_start_zoom": 10
+    }
+  },
+  "rain_glow": 350,
+  "attract": {
+    "_note": "The live view behind the menus (T45). The title flies over the chosen place while its world runs: an orbit round centre_m (radius_m out, height_m up, a lap in lap_s, looking beyond_m past it), or a glide down a river run at speed_cm_s from from_m to to_m, the eye behind_m back and height_m up, never less than clear_m over the canyon rim. A place or weather with no entry of its own takes flyover, round its centre_m. circle_m is the circle the title's craft is driven round at sea. The races list follows the shown course's first seat, driven like the rivals: behind_m back, above_m up, looking ahead_m on, follow_pct of the way a tick; it starts again again_after_s after that seat finishes, or after give_up_s.",
+    "flyover": {
+      "path": "orbit",
+      "radius_m": 160,
+      "height_m": 80,
+      "beyond_m": 80,
+      "lap_s": 150,
+      "circle_m": 30
+    },
+    "places": {
+      "place.open_swell": {
+        "path": "orbit",
+        "centre_m": [10, -10],
+        "radius_m": 80,
+        "height_m": 32,
+        "beyond_m": 70,
+        "lap_s": 120,
+        "circle_m": 22
+      },
+      "place.ledge_river": {
+        "path": "run",
+        "height_m": 38,
+        "speed_cm_s": 600,
+        "from_m": 45,
+        "to_m": 1150,
+        "behind_m": 60,
+        "clear_m": 8
+      }
+    },
+    "race": {
+      "behind_m": 30,
+      "above_m": 22,
+      "ahead_m": 30,
+      "follow_pct": 8,
+      "clear_m": 2,
+      "again_after_s": 4,
+      "give_up_s": 300
+    }
+  }
+}
